@@ -46,6 +46,9 @@ dependencies {
     implementation("androidx.compose.material3:material3:1.1.2")
     implementation("androidx.compose.ui:ui-tooling-preview:1.5.4")
     
+    // Navigation
+    implementation("androidx.navigation:navigation-compose:2.7.6")
+    
     // OkHttp для HTTP-запросов
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     

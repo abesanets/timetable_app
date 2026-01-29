@@ -12,8 +12,21 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material.icons.outlined.Notifications
+import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.*
+import androidx.navigation.NavDestination.Companion.hierarchy
+import androidx.navigation.NavGraph.Companion.findStartDestination
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.navigation.compose.rememberNavController
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -87,13 +100,24 @@ fun PremiumDarkTheme(content: @Composable () -> Unit) {
 }
 
 /**
- * Главный экран приложения
+ * Навигационные маршруты
+ */
+sealed class Screen(val route: String, val title: String) {
+    object Home : Screen("home", "Главная")
+    object Calls : Screen("calls", "Звонки")
+    object Settings : Screen("settings", "Настройки")
+}
+
+/**
+ * Главный экран приложения с навигацией
  */
 @Composable
 fun ScheduleApp() {
+    val navController = rememberNavController()
     val context = LocalContext.current
     val preferencesManager = remember { PreferencesManager(context) }
     
+    // Поднимаем состояние на уровень ScheduleApp, чтобы оно сохранялось при переключении вкладок
     var groupInput by remember { mutableStateOf("88") }
     var schedule by remember { mutableStateOf<Schedule?>(null) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
@@ -112,7 +136,6 @@ fun ScheduleApp() {
                 isLoading = true
                 errorMessage = null
                 try {
-                    // Выполняем загрузку в IO потоке
                     val html = withContext(Dispatchers.IO) {
                         fetcher.fetchScheduleHtml(savedGroup)
                     }
@@ -141,7 +164,6 @@ fun ScheduleApp() {
             errorMessage = null
             schedule = null
             try {
-                // Выполняем загрузку в IO потоке
                 val html = withContext(Dispatchers.IO) {
                     fetcher.fetchScheduleHtml(groupInput)
                 }
@@ -149,7 +171,6 @@ fun ScheduleApp() {
                     parser.parse(html, groupInput)
                 }
                 schedule = parsedSchedule
-                // Сохраняем группу
                 preferencesManager.saveLastGroup(groupInput)
             } catch (e: NoInternetException) {
                 errorMessage = e.message
@@ -165,6 +186,218 @@ fun ScheduleApp() {
         }
     }
     
+    Scaffold(
+        bottomBar = {
+            NavigationBar(
+                containerColor = MaterialTheme.colorScheme.surface,
+                tonalElevation = 8.dp,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp))
+            ) {
+                val navBackStackEntry by navController.currentBackStackEntryAsState()
+                val currentDestination = navBackStackEntry?.destination
+                
+                NavigationBarItem(
+                    icon = { 
+                        Icon(
+                            if (currentDestination?.route == Screen.Calls.route) 
+                                Icons.Filled.Notifications 
+                            else 
+                                Icons.Outlined.Notifications,
+                            contentDescription = Screen.Calls.title
+                        ) 
+                    },
+                    label = { Text(Screen.Calls.title, fontFamily = CustomFont) },
+                    selected = currentDestination?.hierarchy?.any { it.route == Screen.Calls.route } == true,
+                    onClick = {
+                        navController.navigate(Screen.Calls.route) {
+                            popUpTo(navController.graph.findStartDestination().id) {
+                                saveState = true
+                            }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    },
+                    colors = NavigationBarItemDefaults.colors(
+                        selectedIconColor = MaterialTheme.colorScheme.onPrimary,
+                        selectedTextColor = MaterialTheme.colorScheme.primary,
+                        indicatorColor = MaterialTheme.colorScheme.primary,
+                        unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                )
+                
+                NavigationBarItem(
+                    icon = { 
+                        Icon(
+                            if (currentDestination?.route == Screen.Home.route) 
+                                Icons.Filled.Home 
+                            else 
+                                Icons.Outlined.Home,
+                            contentDescription = Screen.Home.title
+                        ) 
+                    },
+                    label = { Text(Screen.Home.title, fontFamily = CustomFont) },
+                    selected = currentDestination?.hierarchy?.any { it.route == Screen.Home.route } == true,
+                    onClick = {
+                        navController.navigate(Screen.Home.route) {
+                            popUpTo(navController.graph.findStartDestination().id) {
+                                saveState = true
+                            }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    },
+                    colors = NavigationBarItemDefaults.colors(
+                        selectedIconColor = MaterialTheme.colorScheme.onPrimary,
+                        selectedTextColor = MaterialTheme.colorScheme.primary,
+                        indicatorColor = MaterialTheme.colorScheme.primary,
+                        unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                )
+                
+                NavigationBarItem(
+                    icon = { 
+                        Icon(
+                            if (currentDestination?.route == Screen.Settings.route) 
+                                Icons.Filled.Settings 
+                            else 
+                                Icons.Outlined.Settings,
+                            contentDescription = Screen.Settings.title
+                        ) 
+                    },
+                    label = { Text(Screen.Settings.title, fontFamily = CustomFont) },
+                    selected = currentDestination?.hierarchy?.any { it.route == Screen.Settings.route } == true,
+                    onClick = {
+                        navController.navigate(Screen.Settings.route) {
+                            popUpTo(navController.graph.findStartDestination().id) {
+                                saveState = true
+                            }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    },
+                    colors = NavigationBarItemDefaults.colors(
+                        selectedIconColor = MaterialTheme.colorScheme.onPrimary,
+                        selectedTextColor = MaterialTheme.colorScheme.primary,
+                        indicatorColor = MaterialTheme.colorScheme.primary,
+                        unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                )
+            }
+        }
+    ) { paddingValues ->
+        NavHost(
+            navController = navController,
+            startDestination = Screen.Home.route,
+            modifier = Modifier.padding(paddingValues)
+        ) {
+            composable(
+                route = Screen.Calls.route,
+                enterTransition = {
+                    slideInHorizontally(
+                        initialOffsetX = { -it },
+                        animationSpec = spring(
+                            dampingRatio = Spring.DampingRatioNoBouncy,
+                            stiffness = Spring.StiffnessMediumLow
+                        )
+                    )
+                },
+                exitTransition = {
+                    slideOutHorizontally(
+                        targetOffsetX = { -it },
+                        animationSpec = spring(
+                            dampingRatio = Spring.DampingRatioNoBouncy,
+                            stiffness = Spring.StiffnessMediumLow
+                        )
+                    )
+                }
+            ) {
+                CallsScreen()
+            }
+            composable(
+                route = Screen.Home.route,
+                enterTransition = {
+                    slideInHorizontally(
+                        initialOffsetX = { 
+                            when (initialState.destination.route) {
+                                Screen.Calls.route -> it  // Звонки -> Главная: приезжает справа
+                                Screen.Settings.route -> -it  // Настройки -> Главная: приезжает слева
+                                else -> 0
+                            }
+                        },
+                        animationSpec = spring(
+                            dampingRatio = Spring.DampingRatioNoBouncy,
+                            stiffness = Spring.StiffnessMediumLow
+                        )
+                    )
+                },
+                exitTransition = {
+                    slideOutHorizontally(
+                        targetOffsetX = { 
+                            when (targetState.destination.route) {
+                                Screen.Calls.route -> it  // Главная -> Звонки: уезжает вправо
+                                Screen.Settings.route -> -it  // Главная -> Настройки: уезжает влево
+                                else -> 0
+                            }
+                        },
+                        animationSpec = spring(
+                            dampingRatio = Spring.DampingRatioNoBouncy,
+                            stiffness = Spring.StiffnessMediumLow
+                        )
+                    )
+                }
+            ) {
+                HomeScreen(
+                    groupInput = groupInput,
+                    onGroupInputChange = { groupInput = it },
+                    schedule = schedule,
+                    errorMessage = errorMessage,
+                    isLoading = isLoading,
+                    loadSchedule = loadSchedule
+                )
+            }
+            composable(
+                route = Screen.Settings.route,
+                enterTransition = {
+                    slideInHorizontally(
+                        initialOffsetX = { it },
+                        animationSpec = spring(
+                            dampingRatio = Spring.DampingRatioNoBouncy,
+                            stiffness = Spring.StiffnessMediumLow
+                        )
+                    )
+                },
+                exitTransition = {
+                    slideOutHorizontally(
+                        targetOffsetX = { it },
+                        animationSpec = spring(
+                            dampingRatio = Spring.DampingRatioNoBouncy,
+                            stiffness = Spring.StiffnessMediumLow
+                        )
+                    )
+                }
+            ) {
+                SettingsScreen()
+            }
+        }
+    }
+}
+
+/**
+ * Экран главной (текущее расписание)
+ */
+@Composable
+fun HomeScreen(
+    groupInput: String,
+    onGroupInputChange: (String) -> Unit,
+    schedule: Schedule?,
+    errorMessage: String?,
+    isLoading: Boolean,
+    loadSchedule: () -> Unit
+) {
     Surface(
         modifier = Modifier.fillMaxSize(),
         color = MaterialTheme.colorScheme.background
@@ -199,7 +432,7 @@ fun ScheduleApp() {
                 ) {
                     OutlinedTextField(
                         value = groupInput,
-                        onValueChange = { groupInput = it },
+                        onValueChange = onGroupInputChange,
                         placeholder = { 
                             Text(
                                 "Группа", 
@@ -245,8 +478,8 @@ fun ScheduleApp() {
                             )
                         } else {
                             Icon(
-                                imageVector = Icons.Default.Search,
-                                contentDescription = "Поиск",
+                                imageVector = if (schedule != null) Icons.Default.Refresh else Icons.Default.Search,
+                                contentDescription = if (schedule != null) "Обновить" else "Поиск",
                                 modifier = Modifier.size(24.dp)
                             )
                         }
@@ -300,6 +533,175 @@ fun ScheduleApp() {
                         }
                     }
                 }
+            }
+        }
+    }
+}
+
+/**
+ * Экран звонков
+ */
+@Composable
+fun CallsScreen() {
+    val calendar = Calendar.getInstance()
+    val isSaturday = calendar.get(Calendar.DAY_OF_WEEK) == Calendar.SATURDAY
+    val schedule = if (isSaturday) SATURDAY_SCHEDULE else WEEKDAY_SCHEDULE
+    val dayName = if (isSaturday) "Суббота" else "Будни"
+    
+    Surface(
+        modifier = Modifier.fillMaxSize(),
+        color = MaterialTheme.colorScheme.background
+    ) {
+        Column(
+            modifier = Modifier.fillMaxSize()
+        ) {
+            // Шапка
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(bottomStart = 16.dp, bottomEnd = 16.dp))
+                    .background(MaterialTheme.colorScheme.surface)
+                    .padding(horizontal = 20.dp, vertical = 16.dp)
+            ) {
+                Text(
+                    text = "Расписание звонков",
+                    fontSize = 26.sp,
+                    fontWeight = FontWeight.Normal,
+                    fontFamily = CustomFont,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.fillMaxWidth(),
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                )
+                
+                Spacer(modifier = Modifier.height(8.dp))
+                
+                Text(
+                    text = dayName,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Normal,
+                    fontFamily = CustomFont,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.fillMaxWidth(),
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                )
+            }
+            
+            // Список звонков
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(20.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                items(schedule.size) { index ->
+                    CallItem(
+                        lessonNumber = index + 1,
+                        callTime = schedule[index]
+                    )
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Элемент звонка
+ */
+@Composable
+fun CallItem(lessonNumber: Int, callTime: CallTime) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .background(MaterialTheme.colorScheme.surface)
+            .padding(16.dp),
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        // Номер пары
+        Box(
+            modifier = Modifier
+                .size(48.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .background(MaterialTheme.colorScheme.primary),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = lessonNumber.toString(),
+                fontSize = 24.sp,
+                fontWeight = FontWeight.Normal,
+                fontFamily = CustomFont,
+                color = MaterialTheme.colorScheme.onPrimary
+            )
+        }
+        
+        // Время
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Text(
+                text = "${callTime.firstStart} - ${callTime.firstEnd}  |  ${callTime.secondStart} - ${callTime.secondEnd}",
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Normal,
+                fontFamily = CustomFont,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Text(
+                text = "Пара $lessonNumber",
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Normal,
+                fontFamily = CustomFont,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
+/**
+ * Экран настроек (заглушка)
+ */
+@Composable
+fun SettingsScreen() {
+    Surface(
+        modifier = Modifier.fillMaxSize(),
+        color = MaterialTheme.colorScheme.background
+    ) {
+        Column(
+            modifier = Modifier.fillMaxSize()
+        ) {
+            // Шапка
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(bottomStart = 16.dp, bottomEnd = 16.dp))
+                    .background(MaterialTheme.colorScheme.surface)
+                    .padding(horizontal = 20.dp, vertical = 16.dp)
+            ) {
+                Text(
+                    text = "Настройки",
+                    fontSize = 26.sp,
+                    fontWeight = FontWeight.Normal,
+                    fontFamily = CustomFont,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.fillMaxWidth(),
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                )
+            }
+            
+            // Контент
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "Скоро здесь появятся настройки",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Normal,
+                    fontFamily = CustomFont,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                    modifier = Modifier.padding(24.dp)
+                )
             }
         }
     }
@@ -363,27 +765,37 @@ fun ScheduleList(schedule: Schedule) {
 }
 
 /**
- * Расписание звонков для будних дней
+ * Расписание звонков для будних дней (с делением на части)
  */
 val WEEKDAY_SCHEDULE = listOf(
-    "09:00" to "10:40",
-    "10:50" to "12:40",
-    "13:00" to "14:40",
-    "14:50" to "16:30",
-    "16:40" to "18:20",
-    "18:30" to "20:10"
+    CallTime("09:00", "09:45", "09:55", "10:40"),
+    CallTime("10:50", "11:35", "11:55", "12:40"),
+    CallTime("13:00", "13:45", "13:55", "14:40"),
+    CallTime("14:50", "15:35", "15:45", "16:30"),
+    CallTime("16:40", "17:25", "17:35", "18:20"),
+    CallTime("18:30", "19:15", "19:25", "20:10")
 )
 
 /**
- * Расписание звонков для субботы
+ * Расписание звонков для субботы (с делением на части)
  */
 val SATURDAY_SCHEDULE = listOf(
-    "09:00" to "10:40",
-    "10:50" to "12:40",
-    "12:50" to "14:30",
-    "14:40" to "16:20",
-    "16:30" to "18:10",
-    "18:20" to "20:00"
+    CallTime("09:00", "09:45", "09:55", "10:40"),
+    CallTime("10:50", "11:35", "11:55", "12:40"),
+    CallTime("12:50", "13:35", "13:45", "14:30"),
+    CallTime("14:40", "15:25", "15:35", "16:20"),
+    CallTime("16:30", "17:15", "17:25", "18:10"),
+    CallTime("18:20", "19:05", "19:15", "20:00")
+)
+
+/**
+ * Модель времени звонка
+ */
+data class CallTime(
+    val firstStart: String,
+    val firstEnd: String,
+    val secondStart: String,
+    val secondEnd: String
 )
 
 /**
@@ -406,8 +818,8 @@ fun areClassesFinishedForToday(day: DaySchedule): Boolean {
     // Проверяем индекс (номер пары - 1)
     if (lastLessonNumber < 1 || lastLessonNumber > schedule.size) return true
     
-    // Получаем время окончания последней пары
-    val endTime = schedule[lastLessonNumber - 1].second
+    // Получаем время окончания последней пары (вторая часть)
+    val endTime = schedule[lastLessonNumber - 1].secondEnd
     val endParts = endTime.split(":")
     val endMinutes = endParts[0].toInt() * 60 + endParts[1].toInt()
     
