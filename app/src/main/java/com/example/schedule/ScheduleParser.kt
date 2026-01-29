@@ -1,0 +1,198 @@
+package com.example.schedule
+
+import android.util.Log
+import org.jsoup.Jsoup
+import org.jsoup.nodes.Element
+
+/**
+ * Парсер HTML-страницы расписания
+ */
+class ScheduleParser {
+    
+    private val TAG = "ScheduleParser"
+    
+    /**
+     * Парсит HTML и возвращает структурированное расписание
+     */
+    fun parse(html: String, group: String): Schedule {
+        val doc = Jsoup.parse(html)
+        
+        // Ищем текст "Группа - XX" (пробуем разные варианты)
+        val groupText = doc.getElementsContainingOwnText("Группа - $group").firstOrNull()
+            ?: doc.getElementsContainingOwnText("Группа-$group").firstOrNull()
+            ?: doc.getElementsContainingOwnText("Группа $group").firstOrNull()
+            ?: throw Exception("Группа $group не найдена на странице")
+        
+        Log.d(TAG, "Найден текст группы: ${groupText.text()}")
+        
+        // Ищем таблицу: сначала сразу после текста, потом в родителе
+        var table: Element? = null
+        
+        // Вариант 1: таблица - следующий элемент после текста группы
+        var nextElement = groupText.nextElementSibling()
+        while (nextElement != null && table == null) {
+            if (nextElement.tagName() == "table") {
+                table = nextElement
+                break
+            }
+            nextElement = nextElement.nextElementSibling()
+        }
+        
+        // Вариант 2: таблица внутри родительского элемента
+        if (table == null) {
+            val parent = groupText.parent()
+            table = parent?.selectFirst("table")
+        }
+        
+        // Вариант 3: ищем таблицу в следующих siblings родителя
+        if (table == null) {
+            var parentSibling = groupText.parent()?.nextElementSibling()
+            while (parentSibling != null && table == null) {
+                table = parentSibling.selectFirst("table")
+                if (table != null) break
+                parentSibling = parentSibling.nextElementSibling()
+            }
+        }
+        
+        if (table == null) {
+            throw Exception("Таблица расписания для группы $group не найдена")
+        }
+        
+        Log.d(TAG, "Найдена таблица расписания")
+        
+        // Получаем все строки таблицы
+        val rows = table.select("tr")
+        if (rows.size < 2) {
+            throw Exception("Таблица слишком маленькая")
+        }
+        
+        // Первая строка — заголовки дней
+        val headerRow = rows[0]
+        val dayHeaders = parseDayHeaders(headerRow)
+        
+        Log.d(TAG, "Найдено дней: ${dayHeaders.size}")
+        dayHeaders.forEachIndexed { index, day ->
+            Log.d(TAG, "День $index: $day")
+        }
+        
+        // Инициализируем расписание для каждого дня
+        val daysSchedule = dayHeaders.map { dayName ->
+            DaySchedule(dayDate = dayName, lessons = mutableListOf())
+        }
+        
+        Log.d(TAG, "Всего строк в таблице: ${rows.size}")
+        
+        // Парсим строки с занятиями (начиная со ВТОРОЙ строки, индекс 1)
+        // Номер пары = индекс строки (1, 2, 3...)
+        for (i in 1 until rows.size) {
+            val row = rows[i]
+            val lessonNumber = i.toString() // Номер пары = номер строки
+            parseLessonRow(row, daysSchedule, lessonNumber)
+        }
+        
+        // Логируем результат
+        daysSchedule.forEachIndexed { index, day ->
+            Log.d(TAG, "День ${day.dayDate}: ${day.lessons.size} занятий")
+        }
+        
+        return Schedule(group = group, days = daysSchedule)
+    }
+    
+    /**
+     * Парсит заголовки дней из первой строки таблицы
+     * Возвращает список названий дней (БЕЗ первой ячейки "№")
+     */
+    private fun parseDayHeaders(headerRow: Element): List<String> {
+        val cells = headerRow.select("td, th")
+        if (cells.isEmpty()) return emptyList()
+        
+        val dayNames = mutableListOf<String>()
+        
+        // ПРОПУСКАЕМ первую ячейку (это "№")
+        for (i in 1 until cells.size) {
+            val cell = cells[i]
+            val text = cell.text().trim()
+            
+            // Добавляем название дня (без учёта colspan для заголовков)
+            if (text.isNotEmpty()) {
+                dayNames.add(text)
+            }
+        }
+        
+        return dayNames
+    }
+    
+    /**
+     * Парсит одну строку с занятиями
+     * Разворачивает colspan и добавляет занятия в соответствующие дни
+     */
+    private fun parseLessonRow(row: Element, daysSchedule: List<DaySchedule>, lessonNumber: String) {
+        val cells = row.select("td")
+        if (cells.isEmpty()) return
+        
+        // Разворачиваем строку с учётом colspan
+        val expandedCells = expandRow(cells)
+        
+        Log.d(TAG, "Пара №$lessonNumber: ${expandedCells.size} ячеек")
+        
+        // ВСЕ ячейки - это данные (нет номера пары в начале!)
+        // Структура: [предмет_ПН, аудитория_ПН, предмет_ВТ, аудитория_ВТ, ...]
+        
+        // Проходим по дням с шагом 2 (предмет, аудитория)
+        var dayIndex = 0
+        var cellIndex = 0
+        
+        while (cellIndex < expandedCells.size - 1 && dayIndex < daysSchedule.size) {
+            val subject = expandedCells.getOrNull(cellIndex)?.trim() ?: ""
+            val room = expandedCells.getOrNull(cellIndex + 1)?.trim() ?: ""
+            
+            Log.d(TAG, "  День $dayIndex: предмет='$subject', аудитория='$room'")
+            
+            // Пропускаем пустые или прочерки
+            if (isValidLesson(subject) || isValidLesson(room)) {
+                val lesson = Lesson(
+                    lessonNumber = lessonNumber,
+                    subject = subject,
+                    room = room
+                )
+                (daysSchedule[dayIndex].lessons as MutableList).add(lesson)
+                Log.d(TAG, "    Добавлено занятие: $lesson")
+            } else {
+                Log.d(TAG, "    Пропущено (пустое или прочерк)")
+            }
+            
+            cellIndex += 2
+            dayIndex++
+        }
+    }
+    
+    /**
+     * Разворачивает строку таблицы с учётом colspan
+     * Аналог expand_row из Python-кода
+     */
+    private fun expandRow(cells: List<Element>): List<String> {
+        val expanded = mutableListOf<String>()
+        
+        for (cell in cells) {
+            val text = cell.text().trim()
+            val colspan = cell.attr("colspan").toIntOrNull() ?: 1
+            
+            // Добавляем текст ячейки colspan раз
+            repeat(colspan) {
+                expanded.add(text)
+            }
+        }
+        
+        return expanded
+    }
+    
+    /**
+     * Проверяет, является ли текст валидным занятием
+     * (не пустой, не прочерк)
+     */
+    private fun isValidLesson(text: String): Boolean {
+        if (text.isEmpty()) return false
+        if (text == "-" || text == "—") return false
+        return true
+    }
+}
