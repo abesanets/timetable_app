@@ -153,32 +153,30 @@ class ScheduleParser {
             
             // Пропускаем пустые или прочерки
             if (isValidLesson(subject) || isValidLesson(room)) {
-                val subgroup = Subgroup(
-                    subject = subject,
-                    room = room
-                )
+                // Проверяем, есть ли подгруппы в тексте
+                val subgroups = parseSubgroups(subject, room)
                 
                 // Ищем существующую пару с таким номером
                 val dayLessons = daysSchedule[dayIndex].lessons as MutableList
                 val existingLesson = dayLessons.find { it.lessonNumber == lessonNumber }
                 
                 if (existingLesson != null) {
-                    // Добавляем подгруппу к существующей паре
+                    // Добавляем подгруппы к существующей паре
                     val updatedSubgroups = existingLesson.subgroups.toMutableList()
-                    updatedSubgroups.add(subgroup)
+                    updatedSubgroups.addAll(subgroups)
                     val updatedLesson = existingLesson.copy(subgroups = updatedSubgroups)
                     
                     val index = dayLessons.indexOf(existingLesson)
                     dayLessons[index] = updatedLesson
-                    Log.d(TAG, "    Добавлена подгруппа к паре $lessonNumber")
+                    Log.d(TAG, "    Добавлены подгруппы к паре $lessonNumber: ${subgroups.size} шт.")
                 } else {
                     // Создаем новую пару
                     val lesson = Lesson(
                         lessonNumber = lessonNumber,
-                        subgroups = listOf(subgroup)
+                        subgroups = subgroups
                     )
                     dayLessons.add(lesson)
-                    Log.d(TAG, "    Создана новая пара: $lesson")
+                    Log.d(TAG, "    Создана новая пара с ${subgroups.size} подгруппами")
                 }
             } else {
                 Log.d(TAG, "    Пропущено (пустое или прочерк)")
@@ -187,6 +185,93 @@ class ScheduleParser {
             cellIndex += 2
             dayIndex++
         }
+    }
+    
+    /**
+     * Распознает подгруппы в тексте предмета и аудитории
+     * Ищет паттерны типа "1.Предмет1 2.Предмет2" или "1. Предмет1 2. Предмет2"
+     */
+    private fun parseSubgroups(subject: String, room: String): List<Subgroup> {
+        // Регулярное выражение для поиска подгрупп: "1.", "2.", "3." и т.д.
+        val subgroupPattern = Regex("""(\d+)\.\s*""")
+        
+        // Проверяем, есть ли маркеры подгрупп в тексте предмета
+        val subjectMatches = subgroupPattern.findAll(subject).toList()
+        val roomMatches = subgroupPattern.findAll(room).toList()
+        
+        // Если нет маркеров подгрупп, возвращаем одну подгруппу
+        if (subjectMatches.isEmpty() && roomMatches.isEmpty()) {
+            return listOf(Subgroup(subject = subject, room = room))
+        }
+        
+        val subgroups = mutableListOf<Subgroup>()
+        
+        // Если есть маркеры в предмете
+        if (subjectMatches.isNotEmpty()) {
+            // Разбиваем текст предмета на части
+            val subjectParts = splitBySubgroupMarkers(subject, subjectMatches)
+            
+            // Разбиваем текст аудитории на части (если есть маркеры)
+            val roomParts = if (roomMatches.isNotEmpty()) {
+                splitBySubgroupMarkers(room, roomMatches)
+            } else {
+                // Если в аудитории нет маркеров, используем весь текст для каждой подгруппы
+                List(subjectParts.size) { room }
+            }
+            
+            // Создаем подгруппы
+            for (i in subjectParts.indices) {
+                val subjectPart = subjectParts.getOrNull(i)?.trim() ?: ""
+                val roomPart = roomParts.getOrNull(i)?.trim() ?: room
+                
+                if (subjectPart.isNotEmpty()) {
+                    subgroups.add(Subgroup(subject = subjectPart, room = roomPart))
+                }
+            }
+        } else if (roomMatches.isNotEmpty()) {
+            // Если маркеры только в аудитории
+            val roomParts = splitBySubgroupMarkers(room, roomMatches)
+            
+            for (i in roomParts.indices) {
+                val roomPart = roomParts.getOrNull(i)?.trim() ?: ""
+                
+                if (roomPart.isNotEmpty()) {
+                    subgroups.add(Subgroup(subject = subject, room = roomPart))
+                }
+            }
+        }
+        
+        return if (subgroups.isEmpty()) {
+            listOf(Subgroup(subject = subject, room = room))
+        } else {
+            subgroups
+        }
+    }
+    
+    /**
+     * Разбивает текст на части по маркерам подгрупп
+     */
+    private fun splitBySubgroupMarkers(text: String, matches: List<MatchResult>): List<String> {
+        if (matches.isEmpty()) return listOf(text)
+        
+        val parts = mutableListOf<String>()
+        
+        for (i in matches.indices) {
+            val currentMatch = matches[i]
+            val nextMatch = matches.getOrNull(i + 1)
+            
+            // Начало текущей подгруппы (после маркера "1.", "2." и т.д.)
+            val start = currentMatch.range.last + 1
+            
+            // Конец текущей подгруппы (до следующего маркера или до конца строки)
+            val end = nextMatch?.range?.first ?: text.length
+            
+            // Извлекаем текст подгруппы
+            val part = text.substring(start, end).trim()
+            parts.add(part)
+        }
+        
+        return parts
     }
     
     /**
