@@ -78,3 +78,9 @@ lint-results.xml
 
 # Android Profiling
 *.hprof
+
+# App icons
+app/src/main/res/mipmap-*/ic_launcher.png
+app/src/main/res/mipmap-*/ic_launcher_round.png
+app/src/main/res/mipmap-*/ic_launcher_foreground.png
+app/src/main/res/mipmap-*/ic_launcher_background.png

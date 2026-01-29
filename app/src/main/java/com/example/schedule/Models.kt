@@ -1,12 +1,19 @@
 package com.example.schedule
 
 /**
- * Модель одного занятия
+ * Модель одной подгруппы в паре
  */
-data class Lesson(
-    val lessonNumber: String,  // Номер пары (1, 2, 3...)
+data class Subgroup(
     val subject: String,        // Название предмета
     val room: String            // Аудитория
+)
+
+/**
+ * Модель одной пары (может содержать несколько подгрупп)
+ */
+data class Lesson(
+    val lessonNumber: String,   // Номер пары (1, 2, 3...)
+    val subgroups: List<Subgroup> // Список подгрупп
 )
 
 /**

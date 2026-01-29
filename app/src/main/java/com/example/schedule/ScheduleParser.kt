@@ -153,13 +153,33 @@ class ScheduleParser {
             
             // Пропускаем пустые или прочерки
             if (isValidLesson(subject) || isValidLesson(room)) {
-                val lesson = Lesson(
-                    lessonNumber = lessonNumber,
+                val subgroup = Subgroup(
                     subject = subject,
                     room = room
                 )
-                (daysSchedule[dayIndex].lessons as MutableList).add(lesson)
-                Log.d(TAG, "    Добавлено занятие: $lesson")
+                
+                // Ищем существующую пару с таким номером
+                val dayLessons = daysSchedule[dayIndex].lessons as MutableList
+                val existingLesson = dayLessons.find { it.lessonNumber == lessonNumber }
+                
+                if (existingLesson != null) {
+                    // Добавляем подгруппу к существующей паре
+                    val updatedSubgroups = existingLesson.subgroups.toMutableList()
+                    updatedSubgroups.add(subgroup)
+                    val updatedLesson = existingLesson.copy(subgroups = updatedSubgroups)
+                    
+                    val index = dayLessons.indexOf(existingLesson)
+                    dayLessons[index] = updatedLesson
+                    Log.d(TAG, "    Добавлена подгруппа к паре $lessonNumber")
+                } else {
+                    // Создаем новую пару
+                    val lesson = Lesson(
+                        lessonNumber = lessonNumber,
+                        subgroups = listOf(subgroup)
+                    )
+                    dayLessons.add(lesson)
+                    Log.d(TAG, "    Создана новая пара: $lesson")
+                }
             } else {
                 Log.d(TAG, "    Пропущено (пустое или прочерк)")
             }

@@ -51,14 +51,6 @@ fun ScheduleApp() {
                 .fillMaxSize()
                 .padding(16.dp)
         ) {
-            // Заголовок
-            Text(
-                text = "Расписание МГКЦТ",
-                fontSize = 24.sp,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(bottom = 16.dp)
-            )
-            
             // Поле ввода группы
             OutlinedTextField(
                 value = groupInput,
@@ -136,16 +128,6 @@ fun ScheduleList(schedule: Schedule) {
     LazyColumn(
         modifier = Modifier.fillMaxSize()
     ) {
-        // Заголовок группы
-        item {
-            Text(
-                text = "Группа ${schedule.group}",
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(vertical = 8.dp)
-            )
-        }
-        
         // Расписание по дням
         items(schedule.days) { day ->
             DayScheduleItem(day = day)
@@ -189,13 +171,36 @@ fun DayScheduleItem(day: DaySchedule) {
 }
 
 /**
- * Одно занятие
+ * Одно занятие (пара с подгруппами)
  */
 @Composable
 fun LessonItem(lesson: Lesson) {
-    Text(
-        text = "  Пара ${lesson.lessonNumber}: ${lesson.subject} — ${lesson.room}",
-        fontSize = 14.sp,
-        modifier = Modifier.padding(vertical = 2.dp)
-    )
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 2.dp)
+    ) {
+        // Если одна подгруппа - отображаем в одну строку
+        if (lesson.subgroups.size == 1) {
+            val subgroup = lesson.subgroups[0]
+            Text(
+                text = "  Пара ${lesson.lessonNumber}: ${subgroup.subject} — ${subgroup.room}",
+                fontSize = 14.sp
+            )
+        } else {
+            // Если несколько подгрупп - отображаем заголовок и список
+            Text(
+                text = "  Пара ${lesson.lessonNumber}:",
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Medium
+            )
+            lesson.subgroups.forEachIndexed { index, subgroup ->
+                Text(
+                    text = "    ${index + 1}. ${subgroup.subject} — ${subgroup.room}",
+                    fontSize = 14.sp,
+                    modifier = Modifier.padding(start = 8.dp)
+                )
+            }
+        }
+    }
 }
