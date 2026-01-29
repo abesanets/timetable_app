@@ -9,6 +9,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
@@ -18,23 +19,18 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-
-@Composable
-fun Dp.toPx(): Float {
-    return with(LocalDensity.current) { this@toPx.toPx() }
-}
+import java.text.SimpleDateFormat
+import java.util.*
 
 val CustomFont = FontFamily.Serif
 
@@ -301,76 +297,42 @@ fun ScheduleApp() {
  */
 @Composable
 fun ScheduleList(schedule: Schedule) {
-    val animationPlayed = remember { mutableStateOf(false) }
-    
-    LaunchedEffect(schedule) {
-        animationPlayed.value = false
-        // Небольшая задержка перед началом анимации
-        kotlinx.coroutines.delay(50)
-        animationPlayed.value = true
+    // Находим индекс текущего дня
+    val todayIndex = remember(schedule) {
+        findTodayIndex(schedule.days)
     }
     
+    // Создаем listState с начальной позицией на текущем дне
+    val listState = rememberLazyListState(
+        initialFirstVisibleItemIndex = if (todayIndex >= 0) todayIndex else 0
+    )
+    
     LazyColumn(
+        state = listState,
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(horizontal = 20.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         items(schedule.days.size) { index ->
             val day = schedule.days[index]
-            AnimatedDayScheduleItem(
-                day = day,
-                index = index,
-                animationPlayed = animationPlayed.value
-            )
+            val isToday = index == todayIndex
+            DayScheduleItem(day = day, isToday = isToday)
         }
     }
 }
 
 /**
- * Анимированное расписание на один день
+ * Находит индекс текущего дня в списке расписания
  */
-@Composable
-fun AnimatedDayScheduleItem(day: DaySchedule, index: Int, animationPlayed: Boolean) {
-    val animatedAlpha by animateFloatAsState(
-        targetValue = if (animationPlayed) 1f else 0f,
-        animationSpec = tween(
-            durationMillis = 600,
-            delayMillis = index * 100,
-            easing = FastOutSlowInEasing
-        ),
-        label = "alpha"
-    )
+fun findTodayIndex(days: List<DaySchedule>): Int {
+    val today = Calendar.getInstance()
+    val dateFormat = SimpleDateFormat("dd.MM.yyyy", Locale("ru"))
+    val todayString = dateFormat.format(today.time)
     
-    val animatedOffset by animateDpAsState(
-        targetValue = if (animationPlayed) 0.dp else 50.dp,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessLow,
-            visibilityThreshold = 1.dp
-        ),
-        label = "offset"
-    )
-    
-    val animatedScale by animateFloatAsState(
-        targetValue = if (animationPlayed) 1f else 0.8f,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessMedium
-        ),
-        label = "scale"
-    )
-    
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .graphicsLayer(
-                alpha = animatedAlpha,
-                translationY = animatedOffset.toPx(),
-                scaleX = animatedScale,
-                scaleY = animatedScale
-            )
-    ) {
-        DayScheduleItem(day = day)
+    return days.indexOfFirst { day ->
+        // Извлекаем дату из строки типа "Понедельник, 20.01.2025"
+        val datePart = day.dayDate.substringAfter(", ").trim()
+        datePart == todayString
     }
 }
 
@@ -378,22 +340,50 @@ fun AnimatedDayScheduleItem(day: DaySchedule, index: Int, animationPlayed: Boole
  * Расписание на один день
  */
 @Composable
-fun DayScheduleItem(day: DaySchedule) {
+fun DayScheduleItem(day: DaySchedule, isToday: Boolean = false) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
-            .background(MaterialTheme.colorScheme.surface)
+            .background(
+                if (isToday) 
+                    MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
+                else 
+                    MaterialTheme.colorScheme.surface
+            )
             .padding(16.dp)
     ) {
-        Text(
-            text = day.dayDate,
-            fontSize = 21.sp,
-            fontWeight = FontWeight.Normal,
-            fontFamily = CustomFont,
-            color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.padding(bottom = 12.dp)
-        )
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text(
+                text = day.dayDate,
+                fontSize = 21.sp,
+                fontWeight = FontWeight.Normal,
+                fontFamily = CustomFont,
+                color = if (isToday) 
+                    MaterialTheme.colorScheme.primary 
+                else 
+                    MaterialTheme.colorScheme.primary,
+                modifier = Modifier.weight(1f)
+            )
+            if (isToday) {
+                Text(
+                    text = "Сегодня",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Normal,
+                    fontFamily = CustomFont,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(6.dp))
+                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.2f))
+                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                )
+            }
+        }
+        
+        Spacer(modifier = Modifier.height(12.dp))
         
         if (day.lessons.isEmpty()) {
             Text(
