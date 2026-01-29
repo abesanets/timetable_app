@@ -82,11 +82,14 @@ class ScheduleParser {
         
         Log.d(TAG, "Всего строк в таблице: ${rows.size}")
         
-        // Парсим строки с занятиями (начиная со ВТОРОЙ строки, индекс 1)
-        // Номер пары = индекс строки (1, 2, 3...)
-        for (i in 1 until rows.size) {
+        // Парсим строки с занятиями
+        // Начинаем с индекса 2, если строка 1 содержит номера пар, иначе с индекса 1
+        // Нумерация: первая строка данных = пара 1
+        val dataStartIndex = 2 // Пропускаем заголовок (0) и строку с номерами (1)
+        
+        for (i in dataStartIndex until rows.size) {
             val row = rows[i]
-            val lessonNumber = i.toString() // Номер пары = номер строки
+            val lessonNumber = (i - dataStartIndex + 1).toString() // Пара 1, 2, 3...
             parseLessonRow(row, daysSchedule, lessonNumber)
         }
         
