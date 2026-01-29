@@ -21,7 +21,7 @@ class ScheduleParser {
         val groupText = doc.getElementsContainingOwnText("Группа - $group").firstOrNull()
             ?: doc.getElementsContainingOwnText("Группа-$group").firstOrNull()
             ?: doc.getElementsContainingOwnText("Группа $group").firstOrNull()
-            ?: throw Exception("Группа $group не найдена на странице")
+            ?: throw GroupNotFoundException("Группа $group не найдена")
         
         Log.d(TAG, "Найден текст группы: ${groupText.text()}")
         
@@ -55,7 +55,7 @@ class ScheduleParser {
         }
         
         if (table == null) {
-            throw Exception("Таблица расписания для группы $group не найдена")
+            throw GroupNotFoundException("Расписание для группы $group не найдено")
         }
         
         Log.d(TAG, "Найдена таблица расписания")

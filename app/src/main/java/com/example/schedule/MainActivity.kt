@@ -120,8 +120,14 @@ fun ScheduleApp() {
                         parser.parse(html, savedGroup)
                     }
                     schedule = parsedSchedule
+                } catch (e: NoInternetException) {
+                    errorMessage = e.message
+                } catch (e: GroupNotFoundException) {
+                    errorMessage = e.message
+                } catch (e: ServerErrorException) {
+                    errorMessage = e.message
                 } catch (e: Exception) {
-                    errorMessage = "Ошибка: ${e.message}"
+                    errorMessage = "Неизвестная ошибка: ${e.message}"
                 } finally {
                     isLoading = false
                 }
@@ -145,8 +151,14 @@ fun ScheduleApp() {
                 schedule = parsedSchedule
                 // Сохраняем группу
                 preferencesManager.saveLastGroup(groupInput)
+            } catch (e: NoInternetException) {
+                errorMessage = e.message
+            } catch (e: GroupNotFoundException) {
+                errorMessage = e.message
+            } catch (e: ServerErrorException) {
+                errorMessage = e.message
             } catch (e: Exception) {
-                errorMessage = "Ошибка: ${e.message}"
+                errorMessage = "Неизвестная ошибка: ${e.message}"
             } finally {
                 isLoading = false
             }
@@ -193,7 +205,7 @@ fun ScheduleApp() {
                                 "Группа", 
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 fontFamily = CustomFont,
-                                fontSize = 13.sp
+                                fontSize = 19.sp
                             ) 
                         },
                         modifier = Modifier.weight(1f),
@@ -208,7 +220,7 @@ fun ScheduleApp() {
                         shape = RoundedCornerShape(12.dp),
                         textStyle = LocalTextStyle.current.copy(
                             fontFamily = CustomFont,
-                            fontSize = 13.sp
+                            fontSize = 19.sp
                         )
                     )
                     
@@ -273,12 +285,13 @@ fun ScheduleApp() {
                             "error" -> {
                                 Text(
                                     text = errorMessage ?: "",
-                                    color = MaterialTheme.colorScheme.error,
-                                    fontSize = 13.sp,
+                                    color = MaterialTheme.colorScheme.onBackground,
+                                    fontSize = 16.sp,
                                     fontFamily = CustomFont,
                                     modifier = Modifier
                                         .align(Alignment.Center)
-                                        .padding(24.dp)
+                                        .padding(24.dp),
+                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
                                 )
                             }
                             "content" -> {
@@ -318,20 +331,32 @@ fun ScheduleList(schedule: Schedule) {
     }
     
     // Создаем listState с начальной позицией на текущем дне
-    val listState = rememberLazyListState(
-        initialFirstVisibleItemIndex = if (displayIndex >= 0) displayIndex else 0
-    )
+    val listState = rememberLazyListState()
+    
+    // Прокручиваем к текущему дню после загрузки
+    LaunchedEffect(displayIndex) {
+        if (displayIndex >= 0) {
+            // Используем offset для небольшого отступа от навбара
+            listState.scrollToItem(displayIndex, scrollOffset = 30)
+        }
+    }
     
     LazyColumn(
         state = listState,
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(horizontal = 20.dp, vertical = 12.dp),
+        contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 20.dp, bottom = 16.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         items(schedule.days.size) { index ->
             val day = schedule.days[index]
             val isToday = index == displayIndex && !showingTomorrow
             val isTomorrow = index == displayIndex && showingTomorrow
+            
+            // Добавляем отступ сверху для текущего дня, чтобы предыдущий не был виден
+            if (isToday || isTomorrow) {
+                Spacer(modifier = Modifier.height(0.dp))
+            }
+            
             DayScheduleItem(day = day, isToday = isToday, isTomorrow = isTomorrow)
         }
     }
