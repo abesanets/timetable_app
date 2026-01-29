@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Основная тема приложения с темным фоном для запуска -->
+    <style name="Theme.Schedule" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <!-- Темный фон окна для splash screen -->
+        <item name="android:windowBackground">@color/splash_background</item>
+    </style>
+</resources>
