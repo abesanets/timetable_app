@@ -298,13 +298,28 @@ fun ScheduleApp() {
 @Composable
 fun ScheduleList(schedule: Schedule) {
     // Находим индекс текущего дня
-    val todayIndex = remember(schedule) {
+    val displayIndex = remember(schedule) {
         findTodayIndex(schedule.days)
+    }
+    
+    // Определяем, показываем ли мы завтра
+    val showingTomorrow = remember(schedule, displayIndex) {
+        val today = Calendar.getInstance()
+        val dateFormat = SimpleDateFormat("dd.MM.yyyy", Locale("ru"))
+        val todayString = dateFormat.format(today.time)
+        
+        val todayIndex = schedule.days.indexOfFirst { day ->
+            val datePart = day.dayDate.substringAfter(", ").trim()
+            datePart == todayString
+        }
+        
+        // Если displayIndex != todayIndex, значит показываем завтра
+        todayIndex >= 0 && displayIndex > todayIndex
     }
     
     // Создаем listState с начальной позицией на текущем дне
     val listState = rememberLazyListState(
-        initialFirstVisibleItemIndex = if (todayIndex >= 0) todayIndex else 0
+        initialFirstVisibleItemIndex = if (displayIndex >= 0) displayIndex else 0
     )
     
     LazyColumn(
@@ -315,38 +330,103 @@ fun ScheduleList(schedule: Schedule) {
     ) {
         items(schedule.days.size) { index ->
             val day = schedule.days[index]
-            val isToday = index == todayIndex
-            DayScheduleItem(day = day, isToday = isToday)
+            val isToday = index == displayIndex && !showingTomorrow
+            val isTomorrow = index == displayIndex && showingTomorrow
+            DayScheduleItem(day = day, isToday = isToday, isTomorrow = isTomorrow)
         }
     }
 }
 
 /**
+ * Расписание звонков для будних дней
+ */
+val WEEKDAY_SCHEDULE = listOf(
+    "09:00" to "10:40",
+    "10:50" to "12:40",
+    "13:00" to "14:40",
+    "14:50" to "16:30",
+    "16:40" to "18:20",
+    "18:30" to "20:10"
+)
+
+/**
+ * Расписание звонков для субботы
+ */
+val SATURDAY_SCHEDULE = listOf(
+    "09:00" to "10:40",
+    "10:50" to "12:40",
+    "12:50" to "14:30",
+    "14:40" to "16:20",
+    "16:30" to "18:10",
+    "18:20" to "20:00"
+)
+
+/**
+ * Проверяет, закончились ли все пары на сегодня
+ */
+fun areClassesFinishedForToday(day: DaySchedule): Boolean {
+    if (day.lessons.isEmpty()) return true
+    
+    val now = Calendar.getInstance()
+    val currentTime = now.get(Calendar.HOUR_OF_DAY) * 60 + now.get(Calendar.MINUTE)
+    
+    // Определяем, суббота ли сегодня
+    val isSaturday = now.get(Calendar.DAY_OF_WEEK) == Calendar.SATURDAY
+    val schedule = if (isSaturday) SATURDAY_SCHEDULE else WEEKDAY_SCHEDULE
+    
+    // Находим последнюю пару
+    val lastLesson = day.lessons.maxByOrNull { it.lessonNumber.toIntOrNull() ?: 0 } ?: return true
+    val lastLessonNumber = lastLesson.lessonNumber.toIntOrNull() ?: return true
+    
+    // Проверяем индекс (номер пары - 1)
+    if (lastLessonNumber < 1 || lastLessonNumber > schedule.size) return true
+    
+    // Получаем время окончания последней пары
+    val endTime = schedule[lastLessonNumber - 1].second
+    val endParts = endTime.split(":")
+    val endMinutes = endParts[0].toInt() * 60 + endParts[1].toInt()
+    
+    return currentTime >= endMinutes
+}
+
+/**
  * Находит индекс текущего дня в списке расписания
+ * Если пары на сегодня закончились, возвращает индекс завтрашнего дня
  */
 fun findTodayIndex(days: List<DaySchedule>): Int {
     val today = Calendar.getInstance()
     val dateFormat = SimpleDateFormat("dd.MM.yyyy", Locale("ru"))
     val todayString = dateFormat.format(today.time)
     
-    return days.indexOfFirst { day ->
-        // Извлекаем дату из строки типа "Понедельник, 20.01.2025"
+    // Находим индекс сегодняшнего дня
+    val todayIndex = days.indexOfFirst { day ->
         val datePart = day.dayDate.substringAfter(", ").trim()
         datePart == todayString
     }
+    
+    // Если сегодняшний день найден, проверяем, закончились ли пары
+    if (todayIndex >= 0) {
+        val todaySchedule = days[todayIndex]
+        if (areClassesFinishedForToday(todaySchedule)) {
+            // Пары закончились, возвращаем следующий день
+            return if (todayIndex + 1 < days.size) todayIndex + 1 else todayIndex
+        }
+    }
+    
+    return todayIndex
 }
 
 /**
  * Расписание на один день
  */
 @Composable
-fun DayScheduleItem(day: DaySchedule, isToday: Boolean = false) {
+fun DayScheduleItem(day: DaySchedule, isToday: Boolean = false, isTomorrow: Boolean = false) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
             .background(
-                if (isToday) 
+                if (isToday || isTomorrow) 
                     MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
                 else 
                     MaterialTheme.colorScheme.surface
@@ -362,7 +442,7 @@ fun DayScheduleItem(day: DaySchedule, isToday: Boolean = false) {
                 fontSize = 21.sp,
                 fontWeight = FontWeight.Normal,
                 fontFamily = CustomFont,
-                color = if (isToday) 
+                color = if (isToday || isTomorrow) 
                     MaterialTheme.colorScheme.primary 
                 else 
                     MaterialTheme.colorScheme.primary,
@@ -371,6 +451,19 @@ fun DayScheduleItem(day: DaySchedule, isToday: Boolean = false) {
             if (isToday) {
                 Text(
                     text = "Сегодня",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Normal,
+                    fontFamily = CustomFont,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(6.dp))
+                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.2f))
+                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                )
+            }
+            if (isTomorrow) {
+                Text(
+                    text = "Завтра",
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Normal,
                     fontFamily = CustomFont,
