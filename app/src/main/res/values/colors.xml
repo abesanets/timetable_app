@@ -1,5 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Цвет фона для Splash Screen (темный, чтобы белый текст был виден) -->
-    <color name="splash_background">#1C1B1F</color>
+    <!-- Premium Dark Theme Colors -->
+    <color name="splash_background">#0A0A0A</color>
+    
+    <!-- Dark Background Palette -->
+    <color name="dark_background">#0A0A0A</color>
+    <color name="dark_surface">#141414</color>
+    <color name="dark_surface_variant">#1E1E1E</color>
+    
+    <!-- White Accent Colors -->
+    <color name="white_primary">#FFFFFF</color>
+    <color name="white_secondary">#E8E8E8</color>
+    <color name="white_tertiary">#B8B8B8</color>
+    
+    <!-- Subtle Accent -->
+    <color name="accent_subtle">#2A2A2A</color>
 </resources>

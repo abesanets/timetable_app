@@ -199,9 +199,10 @@ class ScheduleParser {
         val subjectMatches = subgroupPattern.findAll(subject).toList()
         val roomMatches = subgroupPattern.findAll(room).toList()
         
-        // Если нет маркеров подгрупп, возвращаем одну подгруппу
+        // Если нет маркеров подгрупп, возвращаем одну подгруппу (с очисткой скобок)
         if (subjectMatches.isEmpty() && roomMatches.isEmpty()) {
-            return listOf(Subgroup(subject = subject, room = room))
+            val cleanedRoom = room.replace(Regex("""\s*\([^)]+\)"""), "").trim()
+            return listOf(Subgroup(subject = subject, room = cleanedRoom))
         }
         
         val subgroups = mutableListOf<Subgroup>()
@@ -211,18 +212,19 @@ class ScheduleParser {
             // Разбиваем текст предмета на части
             val subjectParts = splitBySubgroupMarkers(subject, subjectMatches)
             
-            // Разбиваем текст аудитории на части (если есть маркеры)
+            // Разбиваем текст аудитории на части
             val roomParts = if (roomMatches.isNotEmpty()) {
+                // Если в аудитории есть маркеры, разбиваем по ним
                 splitBySubgroupMarkers(room, roomMatches)
             } else {
-                // Если в аудитории нет маркеров, используем весь текст для каждой подгруппы
-                List(subjectParts.size) { room }
+                // Если в аудитории нет маркеров, пробуем разделить по пробелам/запятым
+                splitRoomsByDelimiters(room, subjectParts.size)
             }
             
             // Создаем подгруппы
             for (i in subjectParts.indices) {
                 val subjectPart = subjectParts.getOrNull(i)?.trim() ?: ""
-                val roomPart = roomParts.getOrNull(i)?.trim() ?: room
+                val roomPart = roomParts.getOrNull(i)?.trim() ?: ""
                 
                 if (subjectPart.isNotEmpty()) {
                     subgroups.add(Subgroup(subject = subjectPart, room = roomPart))
@@ -242,10 +244,71 @@ class ScheduleParser {
         }
         
         return if (subgroups.isEmpty()) {
-            listOf(Subgroup(subject = subject, room = room))
+            val cleanedRoom = room.replace(Regex("""\s*\([^)]+\)"""), "").trim()
+            listOf(Subgroup(subject = subject, room = cleanedRoom))
         } else {
             subgroups
         }
+    }
+    
+    /**
+     * Разделяет строку с аудиториями по разделителям (пробелы, запятые)
+     * Возвращает список из expectedCount элементов
+     */
+    private fun splitRoomsByDelimiters(rooms: String, expectedCount: Int): List<String> {
+        // Сначала пробуем разделить по паттерну "номер (буква)" - например "503 (к)501 (к)"
+        // Ищем все вхождения паттерна: цифры + пробел + скобка + буквы + скобка
+        val roomPattern = Regex("""(\d+\s*\([^)]+\))""")
+        val matches = roomPattern.findAll(rooms).toList()
+        
+        if (matches.isNotEmpty()) {
+            // Убираем скобки с буквами из каждой аудитории
+            val parts = matches.map { 
+                it.value.trim().replace(Regex("""\s*\([^)]+\)"""), "")
+            }
+            
+            // Если количество совпадает, возвращаем как есть
+            if (parts.size == expectedCount) {
+                return parts
+            }
+            
+            // Если частей меньше чем нужно, дублируем последнюю
+            if (parts.size < expectedCount) {
+                val result = parts.toMutableList()
+                val lastRoom = parts.lastOrNull() ?: rooms.replace(Regex("""\s*\([^)]+\)"""), "")
+                while (result.size < expectedCount) {
+                    result.add(lastRoom)
+                }
+                return result
+            }
+            
+            // Если частей больше, берем первые expectedCount
+            return parts.take(expectedCount)
+        }
+        
+        // Если паттерн не найден, пробуем разделить по запятым
+        val commaParts = rooms.split(",")
+            .map { it.trim().replace(Regex("""\s*\([^)]+\)"""), "") }
+            .filter { it.isNotEmpty() }
+        
+        if (commaParts.size >= expectedCount) {
+            return commaParts.take(expectedCount)
+        }
+        
+        // Если запятых нет, пробуем по пробелам (но только если нет скобок)
+        if (!rooms.contains("(")) {
+            val spaceParts = rooms.split(Regex("""\s+"""))
+                .map { it.trim() }
+                .filter { it.isNotEmpty() }
+            
+            if (spaceParts.size == expectedCount) {
+                return spaceParts
+            }
+        }
+        
+        // Если ничего не подошло, убираем скобки и дублируем всю строку
+        val cleanedRoom = rooms.replace(Regex("""\s*\([^)]+\)"""), "")
+        return List(expectedCount) { cleanedRoom }
     }
     
     /**
