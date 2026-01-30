@@ -18,7 +18,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
-import androidx.compose.foundation.isSystemInDarkTheme
 import android.Manifest
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -29,8 +28,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
@@ -129,6 +126,7 @@ fun MaterialYouTheme(content: @Composable () -> Unit) {
 
 sealed class Screen(val route: String, val title: String, val icon: ImageVector, val iconSelected: ImageVector) {
     object Home : Screen("home", "Расписание", Icons.Outlined.Home, Icons.Filled.Home)
+    object Buses : Screen("buses", "Автобусы", Icons.Outlined.LocationOn, Icons.Filled.LocationOn)
     object Calls : Screen("calls", "Звонки", Icons.Outlined.Notifications, Icons.Filled.Notifications)
     object Settings : Screen("settings", "Настройки", Icons.Outlined.Settings, Icons.Filled.Settings)
 }
@@ -229,7 +227,7 @@ fun ScheduleApp() {
                 val navBackStackEntry by navController.currentBackStackEntryAsState()
                 val currentDestination = navBackStackEntry?.destination
                 
-                listOf(Screen.Home, Screen.Calls, Screen.Settings).forEach { screen ->
+                listOf(Screen.Home, Screen.Buses, Screen.Calls, Screen.Settings).forEach { screen ->
                     val selected = currentDestination?.hierarchy?.any { it.route == screen.route } == true
                     
                     NavigationBarItem(
@@ -288,6 +286,13 @@ fun ScheduleApp() {
                     loadSchedule = loadSchedule,
                     loadedGroup = loadedGroup
                 )
+            }
+            composable(
+                route = Screen.Buses.route,
+                enterTransition = { fadeIn(tween(400, easing = FastOutSlowInEasing)) },
+                exitTransition = { fadeOut(tween(300, easing = FastOutSlowInEasing)) }
+            ) {
+                BusesScreen()
             }
             composable(
                 route = Screen.Calls.route,
@@ -378,9 +383,8 @@ fun HomeScreen(
                                 strokeWidth = 2.dp
                             )
                         } else {
-                            val isNewGroup = loadedGroup != null && groupInput != loadedGroup
                             Icon(
-                                imageVector = if (isNewGroup) Icons.Default.Search else Icons.Default.Refresh,
+                                imageVector = if (groupInput != loadedGroup) Icons.Default.Search else Icons.Default.Refresh,
                                 contentDescription = null,
                                 modifier = Modifier.size(22.dp)
                             )
@@ -436,7 +440,12 @@ fun HomeScreen(
                             }
                         }
                         "content" -> {
-                            schedule?.let { ScheduleList(schedule = it) }
+                            schedule?.let { currentSchedule ->
+                                // Используем key чтобы полностью пересоздать ScheduleList при обновлении
+                                key(currentSchedule) {
+                                    ScheduleList(schedule = currentSchedule)
+                                }
+                            }
                         }
                         "empty" -> {
                             Column(
@@ -461,6 +470,54 @@ fun HomeScreen(
                         }
                     }
                 }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun BusesScreen() {
+    Surface(
+        modifier = Modifier.fillMaxSize(),
+        color = MaterialTheme.colorScheme.background
+    ) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            TopAppBar(
+                title = {
+                    Text(
+                        "Автобусы",
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    titleContentColor = MaterialTheme.colorScheme.onSurface
+                ),
+                modifier = Modifier.statusBarsPadding()
+            )
+            
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(32.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.LocationOn,
+                    contentDescription = null,
+                    modifier = Modifier.size(80.dp),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = "Скоро здесь появится расписание автобусов",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center
+                )
             }
         }
     }
@@ -818,7 +875,7 @@ fun SettingsScreen() {
 
 @Composable
 fun ScheduleList(schedule: Schedule) {
-    val displayIndex = remember(schedule) { findTodayIndex(schedule.days) }
+    val displayIndex = findTodayIndex(schedule.days)
     
     val showingNext = remember(schedule, displayIndex) {
         val today = Calendar.getInstance()
@@ -833,10 +890,12 @@ fun ScheduleList(schedule: Schedule) {
         todayIndex >= 0 && displayIndex > todayIndex
     }
     
+    // Создаем новый listState при каждом изменении schedule
     val listState = rememberLazyListState(
         initialFirstVisibleItemIndex = if (displayIndex >= 0) displayIndex else 0
     )
     
+    // Принудительно скроллим к нужной позиции при изменении schedule
     LaunchedEffect(schedule) {
         if (displayIndex >= 0) {
             listState.scrollToItem(displayIndex, scrollOffset = 0)
