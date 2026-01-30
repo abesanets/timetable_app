@@ -64,4 +64,8 @@ dependencies {
     
     // WorkManager для фоновых задач
     implementation("androidx.work:work-runtime-ktx:2.9.0")
+    
+    // Glance для виджетов
+    implementation("androidx.glance:glance-appwidget:1.1.0")
+    implementation("androidx.glance:glance-material3:1.1.0")
 }

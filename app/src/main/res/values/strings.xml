@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Расписание МГКЦТ</string>
+    <string name="widget_description">Показывает расписание на сегодня или завтра</string>
+    <string name="add_widget">Добавить виджет</string>
+</resources>
