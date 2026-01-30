@@ -38,6 +38,12 @@
             </intent-filter>
         </receiver>
         
+        <!-- Receiver для ежедневных уведомлений о расписании -->
+        <receiver
+            android:name=".DailyNotificationReceiver"
+            android:enabled="true"
+            android:exported="false" />
+        
         <!-- Виджет расписания -->
         <receiver
             android:name=".ScheduleWidgetReceiver"

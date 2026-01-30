@@ -1,5 +1,7 @@
 package com.example.schedule
 
+import android.content.Context
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -44,10 +46,12 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 import java.util.*
+
 
 class MainActivity : ComponentActivity() {
     
@@ -160,6 +164,13 @@ fun ScheduleApp() {
                     }
                     schedule = parsedSchedule
                     loadedGroup = savedGroup
+                    
+                    // Планируем уведомление после загрузки расписания
+                    val notificationsEnabled = preferencesManager.notificationsEnabled.first()
+                    if (notificationsEnabled) {
+                        val manager = DailyNotificationManager(context)
+                        manager.scheduleNotification(parsedSchedule)
+                    }
                 } catch (e: Exception) {
                     errorMessage = when (e) {
                         is NoInternetException, is GroupNotFoundException, is ServerErrorException -> e.message
@@ -186,6 +197,13 @@ fun ScheduleApp() {
                 schedule = parsedSchedule
                 loadedGroup = groupInput
                 preferencesManager.saveLastGroup(groupInput)
+                
+                // Планируем уведомление после загрузки расписания
+                val notificationsEnabled = preferencesManager.notificationsEnabled.first()
+                if (notificationsEnabled) {
+                    val manager = DailyNotificationManager(context)
+                    manager.scheduleNotification(parsedSchedule)
+                }
             } catch (e: Exception) {
                 errorMessage = when (e) {
                     is NoInternetException, is GroupNotFoundException, is ServerErrorException -> e.message
@@ -559,8 +577,6 @@ fun CallItem(lessonNumber: Int, callTime: CallTime) {
 fun SettingsScreen() {
     val context = LocalContext.current
     val preferencesManager = remember { PreferencesManager(context) }
-    val notificationScheduler = remember { NotificationScheduler(context) }
-    val notificationHelper = remember { NotificationHelper(context) }
     
     val notificationsEnabled by preferencesManager.notificationsEnabled.collectAsState(initial = false)
     val scope = rememberCoroutineScope()
@@ -571,7 +587,7 @@ fun SettingsScreen() {
         if (isGranted) {
             scope.launch {
                 preferencesManager.setNotificationsEnabled(true)
-                notificationScheduler.scheduleNotification()
+                // Уведомление будет запланировано при следующей загрузке расписания
             }
         }
     }
@@ -624,13 +640,13 @@ fun SettingsScreen() {
                                     } else {
                                         scope.launch {
                                             preferencesManager.setNotificationsEnabled(true)
-                                            notificationScheduler.scheduleNotification()
                                         }
                                     }
                                 } else {
                                     scope.launch {
                                         preferencesManager.setNotificationsEnabled(false)
-                                        notificationScheduler.cancelNotification()
+                                        val manager = DailyNotificationManager(context)
+                                        manager.cancelNotification()
                                     }
                                 }
                             }
@@ -664,13 +680,13 @@ fun SettingsScreen() {
                                     } else {
                                         scope.launch {
                                             preferencesManager.setNotificationsEnabled(true)
-                                            notificationScheduler.scheduleNotification()
                                         }
                                     }
                                 } else {
                                     scope.launch {
                                         preferencesManager.setNotificationsEnabled(false)
-                                        notificationScheduler.cancelNotification()
+                                        val manager = DailyNotificationManager(context)
+                                        manager.cancelNotification()
                                     }
                                 }
                             }
@@ -726,6 +742,62 @@ fun SettingsScreen() {
                             tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(24.dp)
                         )
+                    }
+                }
+                
+                // Разрешение на точные будильники (Android 12+)
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    val alarmManager = remember { context.getSystemService(Context.ALARM_SERVICE) as android.app.AlarmManager }
+                    val canSchedule = remember { alarmManager.canScheduleExactAlarms() }
+                    
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = MaterialTheme.shapes.large,
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+                        )
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable(enabled = !canSchedule) {
+                                    val intent = Intent(android.provider.Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM)
+                                    context.startActivity(intent)
+                                }
+                                .padding(16.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(
+                                modifier = Modifier.weight(1f),
+                                verticalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Text(
+                                    text = "Точные будильники",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                Text(
+                                    text = if (canSchedule) "Разрешено" else "Нажмите для настройки",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = if (canSchedule) 
+                                        MaterialTheme.colorScheme.primary 
+                                    else 
+                                        MaterialTheme.colorScheme.error
+                                )
+                            }
+                            
+                            Icon(
+                                imageVector = if (canSchedule) Icons.Outlined.Check else Icons.Outlined.Settings,
+                                contentDescription = null,
+                                tint = if (canSchedule) 
+                                    MaterialTheme.colorScheme.primary 
+                                else 
+                                    MaterialTheme.colorScheme.error,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
                     }
                 }
             }
