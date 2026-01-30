@@ -16,6 +16,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
+import androidx.compose.foundation.isSystemInDarkTheme
 import android.Manifest
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -65,21 +66,42 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun MaterialYouTheme(content: @Composable () -> Unit) {
     val context = LocalContext.current
+    val isDarkTheme = androidx.compose.foundation.isSystemInDarkTheme()
     
     val colorScheme = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-        dynamicDarkColorScheme(context)
+        // Динамические цвета Material You из системы
+        if (isDarkTheme) {
+            dynamicDarkColorScheme(context)
+        } else {
+            dynamicLightColorScheme(context)
+        }
     } else {
-        darkColorScheme(
-            primary = Color(0xFFBB86FC),
-            secondary = Color(0xFF03DAC6),
-            tertiary = Color(0xFF3700B3),
-            background = Color(0xFF1C1B1F),
-            surface = Color(0xFF1C1B1F),
-            onPrimary = Color(0xFF000000),
-            onSecondary = Color(0xFF000000),
-            onBackground = Color(0xFFE6E1E5),
-            onSurface = Color(0xFFE6E1E5)
-        )
+        // Fallback для Android 11 и ниже
+        if (isDarkTheme) {
+            darkColorScheme(
+                primary = Color(0xFFBB86FC),
+                secondary = Color(0xFF03DAC6),
+                tertiary = Color(0xFF3700B3),
+                background = Color(0xFF1C1B1F),
+                surface = Color(0xFF1C1B1F),
+                onPrimary = Color(0xFF000000),
+                onSecondary = Color(0xFF000000),
+                onBackground = Color(0xFFE6E1E5),
+                onSurface = Color(0xFFE6E1E5)
+            )
+        } else {
+            lightColorScheme(
+                primary = Color(0xFF6200EE),
+                secondary = Color(0xFF03DAC6),
+                tertiary = Color(0xFF3700B3),
+                background = Color(0xFFFFFBFE),
+                surface = Color(0xFFFFFBFE),
+                onPrimary = Color(0xFFFFFFFF),
+                onSecondary = Color(0xFF000000),
+                onBackground = Color(0xFF1C1B1F),
+                onSurface = Color(0xFF1C1B1F)
+            )
+        }
     }
     
     MaterialTheme(
@@ -481,7 +503,7 @@ fun CallItem(lessonNumber: Int, callTime: CallTime) {
             .fillMaxWidth(),
         shape = MaterialTheme.shapes.large,
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainer
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
@@ -496,14 +518,7 @@ fun CallItem(lessonNumber: Int, callTime: CallTime) {
                 modifier = Modifier
                     .size(48.dp)
                     .clip(CircleShape)
-                    .background(
-                        Brush.linearGradient(
-                            colors = listOf(
-                                MaterialTheme.colorScheme.primaryContainer,
-                                MaterialTheme.colorScheme.secondaryContainer
-                            )
-                        )
-                    ),
+                    .background(MaterialTheme.colorScheme.primaryContainer),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
@@ -592,7 +607,7 @@ fun SettingsScreen() {
                     modifier = Modifier.fillMaxWidth(),
                     shape = MaterialTheme.shapes.large,
                     colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceContainer
+                        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
                     )
                 ) {
                     Row(
@@ -668,7 +683,7 @@ fun SettingsScreen() {
                     modifier = Modifier.fillMaxWidth(),
                     shape = MaterialTheme.shapes.large,
                     colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceContainer
+                        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
                     )
                 ) {
                     Row(
@@ -769,12 +784,12 @@ fun DayScheduleItem(day: DaySchedule, isToday: Boolean = false, isTomorrow: Bool
         shape = MaterialTheme.shapes.large,
         colors = CardDefaults.cardColors(
             containerColor = if (isToday || isTomorrow)
-                MaterialTheme.colorScheme.primaryContainer
+                MaterialTheme.colorScheme.secondaryContainer
             else
-                MaterialTheme.colorScheme.surfaceContainer
+                MaterialTheme.colorScheme.surfaceContainerHigh
         ),
         elevation = CardDefaults.cardElevation(
-            defaultElevation = if (isToday || isTomorrow) 4.dp else 0.dp
+            defaultElevation = 0.dp
         )
     ) {
         Column(
@@ -791,10 +806,7 @@ fun DayScheduleItem(day: DaySchedule, isToday: Boolean = false, isTomorrow: Bool
                     text = day.dayDate,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
-                    color = if (isToday || isTomorrow)
-                        MaterialTheme.colorScheme.onPrimaryContainer
-                    else
-                        MaterialTheme.colorScheme.onSurface,
+                    color = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.weight(1f)
                 )
                 
@@ -803,8 +815,8 @@ fun DayScheduleItem(day: DaySchedule, isToday: Boolean = false, isTomorrow: Bool
                         onClick = { },
                         label = { Text("Сегодня", fontWeight = FontWeight.SemiBold, fontSize = 12.sp) },
                         colors = AssistChipDefaults.assistChipColors(
-                            containerColor = MaterialTheme.colorScheme.primary,
-                            labelColor = MaterialTheme.colorScheme.onPrimary
+                            containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                            labelColor = MaterialTheme.colorScheme.onTertiaryContainer
                         ),
                         modifier = Modifier.height(28.dp)
                     )
@@ -814,8 +826,8 @@ fun DayScheduleItem(day: DaySchedule, isToday: Boolean = false, isTomorrow: Bool
                         onClick = { },
                         label = { Text("Завтра", fontWeight = FontWeight.SemiBold, fontSize = 12.sp) },
                         colors = AssistChipDefaults.assistChipColors(
-                            containerColor = MaterialTheme.colorScheme.secondary,
-                            labelColor = MaterialTheme.colorScheme.onSecondary
+                            containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                            labelColor = MaterialTheme.colorScheme.onTertiaryContainer
                         ),
                         modifier = Modifier.height(28.dp)
                     )
@@ -858,9 +870,9 @@ fun LessonItem(lesson: Lesson, isHighlighted: Boolean = false) {
         shape = MaterialTheme.shapes.medium,
         colors = CardDefaults.cardColors(
             containerColor = if (isHighlighted)
-                MaterialTheme.colorScheme.surface
+                MaterialTheme.colorScheme.surfaceContainerHighest
             else
-                MaterialTheme.colorScheme.surfaceVariant
+                MaterialTheme.colorScheme.surfaceContainerHigh
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
@@ -874,21 +886,14 @@ fun LessonItem(lesson: Lesson, isHighlighted: Boolean = false) {
                 modifier = Modifier
                     .size(40.dp)
                     .clip(CircleShape)
-                    .background(
-                        Brush.linearGradient(
-                            colors = listOf(
-                                MaterialTheme.colorScheme.primary,
-                                MaterialTheme.colorScheme.tertiary
-                            )
-                        )
-                    ),
+                    .background(MaterialTheme.colorScheme.primaryContainer),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
                     text = lesson.lessonNumber,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onPrimary
+                    color = MaterialTheme.colorScheme.onPrimaryContainer
                 )
             }
             
@@ -903,7 +908,7 @@ fun LessonItem(lesson: Lesson, isHighlighted: Boolean = false) {
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Medium,
                         color = MaterialTheme.colorScheme.onSurface,
-                        maxLines = 2,
+                        maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
                     Row(
@@ -944,10 +949,10 @@ fun LessonItem(lesson: Lesson, isHighlighted: Boolean = false) {
                                 ) {
                                     Text(
                                         text = subgroup.subject,
-                                        style = MaterialTheme.typography.bodySmall,
+                                        style = MaterialTheme.typography.bodyMedium,
                                         fontWeight = FontWeight.Medium,
                                         color = MaterialTheme.colorScheme.onSurface,
-                                        maxLines = 2,
+                                        maxLines = 1,
                                         overflow = TextOverflow.Ellipsis
                                     )
                                     Row(

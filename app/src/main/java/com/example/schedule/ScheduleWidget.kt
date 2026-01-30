@@ -3,6 +3,7 @@ package com.example.schedule
 import android.content.Context
 import android.os.Build
 import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -33,22 +34,22 @@ class ScheduleWidget : GlanceAppWidget() {
         provideContent {
             // Используем динамические цвета Material You как в приложении
             val colors = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                GlanceTheme.colors // Динамические цвета из системы
+                GlanceTheme.colors // Динамические цвета из системы (автоматически светлые/темные)
             } else {
                 // Fallback для старых версий Android
                 ColorProviders(
-                    light = darkColorScheme(
-                        primary = androidx.compose.ui.graphics.Color(0xFFBB86FC),
+                    light = androidx.compose.material3.lightColorScheme(
+                        primary = androidx.compose.ui.graphics.Color(0xFF6200EE),
                         secondary = androidx.compose.ui.graphics.Color(0xFF03DAC6),
                         tertiary = androidx.compose.ui.graphics.Color(0xFF3700B3),
-                        background = androidx.compose.ui.graphics.Color(0xFF1C1B1F),
-                        surface = androidx.compose.ui.graphics.Color(0xFF1C1B1F),
-                        onPrimary = androidx.compose.ui.graphics.Color(0xFF000000),
+                        background = androidx.compose.ui.graphics.Color(0xFFFFFBFE),
+                        surface = androidx.compose.ui.graphics.Color(0xFFFFFBFE),
+                        onPrimary = androidx.compose.ui.graphics.Color(0xFFFFFFFF),
                         onSecondary = androidx.compose.ui.graphics.Color(0xFF000000),
-                        onBackground = androidx.compose.ui.graphics.Color(0xFFE6E1E5),
-                        onSurface = androidx.compose.ui.graphics.Color(0xFFE6E1E5)
+                        onBackground = androidx.compose.ui.graphics.Color(0xFF1C1B1F),
+                        onSurface = androidx.compose.ui.graphics.Color(0xFF1C1B1F)
                     ),
-                    dark = darkColorScheme(
+                    dark = androidx.compose.material3.darkColorScheme(
                         primary = androidx.compose.ui.graphics.Color(0xFFBB86FC),
                         secondary = androidx.compose.ui.graphics.Color(0xFF03DAC6),
                         tertiary = androidx.compose.ui.graphics.Color(0xFF3700B3),
@@ -180,7 +181,7 @@ fun DayScheduleWidget(day: DaySchedule, dayLabel: String) {
             .fillMaxWidth()
             .background(
                 if (dayLabel.isNotEmpty()) 
-                    GlanceTheme.colors.primaryContainer 
+                    GlanceTheme.colors.secondaryContainer 
                 else 
                     GlanceTheme.colors.surfaceVariant
             )
@@ -201,10 +202,7 @@ fun DayScheduleWidget(day: DaySchedule, dayLabel: String) {
                 style = TextStyle(
                     fontSize = 13.sp,
                     fontWeight = FontWeight.Bold,
-                    color = if (dayLabel.isNotEmpty())
-                        GlanceTheme.colors.onPrimaryContainer
-                    else
-                        GlanceTheme.colors.onSurface
+                    color = GlanceTheme.colors.onSurface
                 ),
                 modifier = GlanceModifier.defaultWeight()
             )
@@ -212,12 +210,7 @@ fun DayScheduleWidget(day: DaySchedule, dayLabel: String) {
             if (dayLabel.isNotEmpty()) {
                 Box(
                     modifier = GlanceModifier
-                        .background(
-                            if (dayLabel == "Сегодня") 
-                                GlanceTheme.colors.primary 
-                            else 
-                                GlanceTheme.colors.secondary
-                        )
+                        .background(GlanceTheme.colors.tertiaryContainer)
                         .cornerRadius(10.dp)
                         .padding(horizontal = 8.dp, vertical = 4.dp)
                 ) {
@@ -226,10 +219,7 @@ fun DayScheduleWidget(day: DaySchedule, dayLabel: String) {
                         style = TextStyle(
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Bold,
-                            color = if (dayLabel == "Сегодня") 
-                                GlanceTheme.colors.onPrimary 
-                            else 
-                                GlanceTheme.colors.onSecondary
+                            color = GlanceTheme.colors.onTertiaryContainer
                         )
                     )
                 }
@@ -272,10 +262,7 @@ fun DayScheduleWidget(day: DaySchedule, dayLabel: String) {
                         text = "Еще ${day.lessons.size - 3} пар...",
                         style = TextStyle(
                             fontSize = 10.sp,
-                            color = if (dayLabel.isNotEmpty())
-                                GlanceTheme.colors.onPrimaryContainer
-                            else
-                                GlanceTheme.colors.onSurfaceVariant
+                            color = GlanceTheme.colors.onSurfaceVariant
                         ),
                         modifier = GlanceModifier.padding(top = 2.dp, start = 4.dp)
                     )
@@ -306,7 +293,7 @@ fun LessonWidgetItem(lesson: Lesson, isHighlighted: Boolean) {
         Box(
             modifier = GlanceModifier
                 .size(32.dp)
-                .background(GlanceTheme.colors.primary)
+                .background(GlanceTheme.colors.primaryContainer)
                 .cornerRadius(16.dp),
             contentAlignment = Alignment.Center
         ) {
@@ -315,7 +302,7 @@ fun LessonWidgetItem(lesson: Lesson, isHighlighted: Boolean) {
                 style = TextStyle(
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Bold,
-                    color = GlanceTheme.colors.onPrimary
+                    color = GlanceTheme.colors.onPrimaryContainer
                 )
             )
         }
@@ -336,7 +323,7 @@ fun LessonWidgetItem(lesson: Lesson, isHighlighted: Boolean) {
                         fontWeight = FontWeight.Medium,
                         color = GlanceTheme.colors.onSurface
                     ),
-                    maxLines = 2
+                    maxLines = 1
                 )
                 Spacer(modifier = GlanceModifier.height(4.dp))
                 Row(
@@ -378,7 +365,7 @@ fun LessonWidgetItem(lesson: Lesson, isHighlighted: Boolean) {
                             Text(
                                 text = subgroup.subject,
                                 style = TextStyle(
-                                    fontSize = 11.sp,
+                                    fontSize = 12.sp,
                                     fontWeight = FontWeight.Medium,
                                     color = GlanceTheme.colors.onSurface
                                 ),
