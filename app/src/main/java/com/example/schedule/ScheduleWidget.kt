@@ -1,9 +1,6 @@
 package com.example.schedule
 
 import android.content.Context
-import android.os.Build
-import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -15,11 +12,11 @@ import androidx.glance.appwidget.GlanceAppWidgetReceiver
 import androidx.glance.appwidget.provideContent
 import androidx.glance.appwidget.action.actionRunCallback
 import androidx.glance.appwidget.cornerRadius
+import androidx.glance.appwidget.lazy.LazyColumn
 import androidx.glance.layout.*
 import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
-import androidx.glance.material3.ColorProviders
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
@@ -32,141 +29,115 @@ class ScheduleWidget : GlanceAppWidget() {
         val widgetData = loadWidgetData(context)
         
         provideContent {
-            // Используем динамические цвета Material You как в приложении
-            val colors = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                GlanceTheme.colors // Динамические цвета из системы (автоматически светлые/темные)
-            } else {
-                // Fallback для старых версий Android
-                ColorProviders(
-                    light = androidx.compose.material3.lightColorScheme(
-                        primary = androidx.compose.ui.graphics.Color(0xFF6200EE),
-                        secondary = androidx.compose.ui.graphics.Color(0xFF03DAC6),
-                        tertiary = androidx.compose.ui.graphics.Color(0xFF3700B3),
-                        background = androidx.compose.ui.graphics.Color(0xFFFFFBFE),
-                        surface = androidx.compose.ui.graphics.Color(0xFFFFFBFE),
-                        onPrimary = androidx.compose.ui.graphics.Color(0xFFFFFFFF),
-                        onSecondary = androidx.compose.ui.graphics.Color(0xFF000000),
-                        onBackground = androidx.compose.ui.graphics.Color(0xFF1C1B1F),
-                        onSurface = androidx.compose.ui.graphics.Color(0xFF1C1B1F)
-                    ),
-                    dark = androidx.compose.material3.darkColorScheme(
-                        primary = androidx.compose.ui.graphics.Color(0xFFBB86FC),
-                        secondary = androidx.compose.ui.graphics.Color(0xFF03DAC6),
-                        tertiary = androidx.compose.ui.graphics.Color(0xFF3700B3),
-                        background = androidx.compose.ui.graphics.Color(0xFF1C1B1F),
-                        surface = androidx.compose.ui.graphics.Color(0xFF1C1B1F),
-                        onPrimary = androidx.compose.ui.graphics.Color(0xFF000000),
-                        onSecondary = androidx.compose.ui.graphics.Color(0xFF000000),
-                        onBackground = androidx.compose.ui.graphics.Color(0xFFE6E1E5),
-                        onSurface = androidx.compose.ui.graphics.Color(0xFFE6E1E5)
-                    )
-                )
-            }
-            
-            GlanceTheme(colors = colors) {
+            // Всегда используем динамические цвета Material You
+            GlanceTheme {
                 WidgetContent(widgetData)
             }
         }
     }
 }
 
-// Удаляем старый объект WidgetColorScheme, он больше не нужен
-
-
 @Composable
 fun WidgetContent(widgetData: WidgetData) {
-    Column(
+    // Используем LazyColumn для прокрутки
+    LazyColumn(
         modifier = GlanceModifier
             .fillMaxSize()
             .background(GlanceTheme.colors.background)
             .padding(12.dp)
-            .clickable(actionStartActivity<MainActivity>()),
-        verticalAlignment = Alignment.Top,
-        horizontalAlignment = Alignment.Start
+            .clickable(actionStartActivity<MainActivity>())
     ) {
         // Заголовок с кнопкой обновления
-        Row(
-            modifier = GlanceModifier
-                .fillMaxWidth()
-                .padding(bottom = 8.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = "Расписание",
-                style = TextStyle(
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = GlanceTheme.colors.onSurface
-                ),
-                modifier = GlanceModifier.defaultWeight()
-            )
-            
-            // Кнопка обновления
-            Box(
+        item {
+            Row(
                 modifier = GlanceModifier
-                    .size(32.dp)
-                    .background(GlanceTheme.colors.primaryContainer)
-                    .cornerRadius(16.dp)
-                    .clickable(actionRunCallback<RefreshWidgetAction>()),
-                contentAlignment = Alignment.Center
+                    .fillMaxWidth()
+                    .padding(bottom = 8.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "⟳",
+                    text = "Расписание",
                     style = TextStyle(
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.Normal,
-                        color = GlanceTheme.colors.onPrimaryContainer
-                    )
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = GlanceTheme.colors.onSurface
+                    ),
+                    modifier = GlanceModifier.defaultWeight()
                 )
+                
+                // Кнопка обновления
+                Box(
+                    modifier = GlanceModifier
+                        .background(GlanceTheme.colors.primaryContainer)
+                        .cornerRadius(12.dp)
+                        .padding(horizontal = 10.dp, vertical = 5.dp)
+                        .clickable(actionRunCallback<RefreshWidgetAction>()),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "Обновить",
+                        style = TextStyle(
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = GlanceTheme.colors.onPrimaryContainer
+                        )
+                    )
+                }
             }
         }
         
         when {
             widgetData.error != null -> {
-                Column(
-                    modifier = GlanceModifier.fillMaxSize(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Text(
-                        text = "⚠",
-                        style = TextStyle(
-                            fontSize = 36.sp,
-                            color = GlanceTheme.colors.error
+                item {
+                    Column(
+                        modifier = GlanceModifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = "⚠",
+                            style = TextStyle(
+                                fontSize = 36.sp,
+                                color = GlanceTheme.colors.error
+                            )
                         )
-                    )
-                    Spacer(modifier = GlanceModifier.height(8.dp))
-                    Text(
-                        text = widgetData.error,
-                        style = TextStyle(
-                            fontSize = 12.sp,
-                            color = GlanceTheme.colors.onSurfaceVariant
+                        Spacer(modifier = GlanceModifier.height(8.dp))
+                        Text(
+                            text = widgetData.error,
+                            style = TextStyle(
+                                fontSize = 12.sp,
+                                color = GlanceTheme.colors.onSurfaceVariant
+                            )
                         )
-                    )
+                    }
                 }
             }
             widgetData.daySchedule != null -> {
-                DayScheduleWidget(widgetData.daySchedule, widgetData.dayLabel)
+                item {
+                    DayScheduleWidget(widgetData.daySchedule, widgetData.dayLabel)
+                }
             }
             else -> {
-                Column(
-                    modifier = GlanceModifier.fillMaxSize(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Text(
-                        text = "📅",
-                        style = TextStyle(fontSize = 36.sp)
-                    )
-                    Spacer(modifier = GlanceModifier.height(8.dp))
-                    Text(
-                        text = "Нет данных",
-                        style = TextStyle(
-                            fontSize = 12.sp,
-                            color = GlanceTheme.colors.onSurfaceVariant
+                item {
+                    Column(
+                        modifier = GlanceModifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = "📅",
+                            style = TextStyle(fontSize = 36.sp)
                         )
-                    )
+                        Spacer(modifier = GlanceModifier.height(8.dp))
+                        Text(
+                            text = "Нет данных",
+                            style = TextStyle(
+                                fontSize = 12.sp,
+                                color = GlanceTheme.colors.onSurfaceVariant
+                            )
+                        )
+                    }
                 }
             }
         }
@@ -252,20 +223,9 @@ fun DayScheduleWidget(day: DaySchedule, dayLabel: String) {
                 modifier = GlanceModifier.fillMaxWidth(),
                 verticalAlignment = Alignment.Top
             ) {
-                day.lessons.take(3).forEach { lesson ->
+                day.lessons.forEach { lesson ->
                     LessonWidgetItem(lesson, dayLabel.isNotEmpty())
                     Spacer(modifier = GlanceModifier.height(6.dp))
-                }
-                
-                if (day.lessons.size > 3) {
-                    Text(
-                        text = "Еще ${day.lessons.size - 3} пар...",
-                        style = TextStyle(
-                            fontSize = 10.sp,
-                            color = GlanceTheme.colors.onSurfaceVariant
-                        ),
-                        modifier = GlanceModifier.padding(top = 2.dp, start = 4.dp)
-                    )
                 }
             }
         }
@@ -330,11 +290,14 @@ fun LessonWidgetItem(lesson: Lesson, isHighlighted: Boolean) {
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalAlignment = Alignment.Start
                 ) {
-                    Text(
-                        text = "📍",
-                        style = TextStyle(fontSize = 12.sp)
-                    )
-                    Spacer(modifier = GlanceModifier.width(3.dp))
+                    Box(
+                        modifier = GlanceModifier
+                            .size(6.dp)
+                            .background(GlanceTheme.colors.primary)
+                            .cornerRadius(3.dp),
+                        contentAlignment = Alignment.Center
+                    ) {}
+                    Spacer(modifier = GlanceModifier.width(4.dp))
                     Text(
                         text = subgroup.room,
                         style = TextStyle(
@@ -345,7 +308,7 @@ fun LessonWidgetItem(lesson: Lesson, isHighlighted: Boolean) {
                     )
                 }
             } else {
-                lesson.subgroups.take(2).forEachIndexed { index, subgroup ->
+                lesson.subgroups.forEachIndexed { index, subgroup ->
                     Row(
                         verticalAlignment = Alignment.Top,
                         horizontalAlignment = Alignment.Start
@@ -376,11 +339,14 @@ fun LessonWidgetItem(lesson: Lesson, isHighlighted: Boolean) {
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalAlignment = Alignment.Start
                             ) {
-                                Text(
-                                    text = "📍",
-                                    style = TextStyle(fontSize = 10.sp)
-                                )
-                                Spacer(modifier = GlanceModifier.width(2.dp))
+                                Box(
+                                    modifier = GlanceModifier
+                                        .size(5.dp)
+                                        .background(GlanceTheme.colors.primary)
+                                        .cornerRadius(2.5.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {}
+                                Spacer(modifier = GlanceModifier.width(3.dp))
                                 Text(
                                     text = subgroup.room,
                                     style = TextStyle(
@@ -392,18 +358,9 @@ fun LessonWidgetItem(lesson: Lesson, isHighlighted: Boolean) {
                             }
                         }
                     }
-                    if (index < lesson.subgroups.size - 1 && index < 1) {
+                    if (index < lesson.subgroups.size - 1) {
                         Spacer(modifier = GlanceModifier.height(4.dp))
                     }
-                }
-                if (lesson.subgroups.size > 2) {
-                    Text(
-                        text = "...",
-                        style = TextStyle(
-                            fontSize = 10.sp,
-                            color = GlanceTheme.colors.onSurfaceVariant
-                        )
-                    )
                 }
             }
         }
