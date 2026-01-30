@@ -47,46 +47,6 @@ fun WidgetContent(widgetData: WidgetData) {
             .padding(12.dp)
             .clickable(actionStartActivity<MainActivity>())
     ) {
-        // Заголовок с кнопкой обновления
-        item {
-            Row(
-                modifier = GlanceModifier
-                    .fillMaxWidth()
-                    .padding(bottom = 8.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "Расписание",
-                    style = TextStyle(
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = GlanceTheme.colors.onSurface
-                    ),
-                    modifier = GlanceModifier.defaultWeight()
-                )
-                
-                // Кнопка обновления
-                Box(
-                    modifier = GlanceModifier
-                        .background(GlanceTheme.colors.primaryContainer)
-                        .cornerRadius(12.dp)
-                        .padding(horizontal = 10.dp, vertical = 5.dp)
-                        .clickable(actionRunCallback<RefreshWidgetAction>()),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "Обновить",
-                        style = TextStyle(
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = GlanceTheme.colors.onPrimaryContainer
-                        )
-                    )
-                }
-            }
-        }
-        
         when {
             widgetData.error != null -> {
                 item {
@@ -115,7 +75,7 @@ fun WidgetContent(widgetData: WidgetData) {
             }
             widgetData.daySchedule != null -> {
                 item {
-                    DayScheduleWidget(widgetData.daySchedule, widgetData.dayLabel)
+                    DayScheduleWidget(widgetData.daySchedule)
                 }
             }
             else -> {
@@ -145,22 +105,15 @@ fun WidgetContent(widgetData: WidgetData) {
 }
 
 @Composable
-fun DayScheduleWidget(day: DaySchedule, dayLabel: String) {
-    // Карточка дня как в приложении
+fun DayScheduleWidget(day: DaySchedule) {
+    // Карточка дня без внешней обводки
     Column(
         modifier = GlanceModifier
             .fillMaxWidth()
-            .background(
-                if (dayLabel.isNotEmpty()) 
-                    GlanceTheme.colors.secondaryContainer 
-                else 
-                    GlanceTheme.colors.surfaceVariant
-            )
-            .cornerRadius(16.dp)
-            .padding(12.dp),
+            .padding(0.dp),
         verticalAlignment = Alignment.Top
     ) {
-        // Заголовок дня
+        // Заголовок дня с кнопкой обновления
         Row(
             modifier = GlanceModifier
                 .fillMaxWidth()
@@ -171,29 +124,30 @@ fun DayScheduleWidget(day: DaySchedule, dayLabel: String) {
             Text(
                 text = day.dayDate,
                 style = TextStyle(
-                    fontSize = 13.sp,
+                    fontSize = 14.sp,
                     fontWeight = FontWeight.Bold,
                     color = GlanceTheme.colors.onSurface
                 ),
                 modifier = GlanceModifier.defaultWeight()
             )
             
-            if (dayLabel.isNotEmpty()) {
-                Box(
-                    modifier = GlanceModifier
-                        .background(GlanceTheme.colors.primaryContainer)
-                        .cornerRadius(10.dp)
-                        .padding(horizontal = 8.dp, vertical = 4.dp)
-                ) {
-                    Text(
-                        text = dayLabel,
-                        style = TextStyle(
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = GlanceTheme.colors.onPrimaryContainer
-                        )
+            // Кнопка обновления
+            Box(
+                modifier = GlanceModifier
+                    .background(GlanceTheme.colors.primaryContainer)
+                    .cornerRadius(12.dp)
+                    .padding(horizontal = 10.dp, vertical = 5.dp)
+                    .clickable(actionRunCallback<RefreshWidgetAction>()),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "Обновить",
+                    style = TextStyle(
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = GlanceTheme.colors.onPrimaryContainer
                     )
-                }
+                )
             }
         }
         
@@ -201,7 +155,9 @@ fun DayScheduleWidget(day: DaySchedule, dayLabel: String) {
             Row(
                 modifier = GlanceModifier
                     .fillMaxWidth()
-                    .padding(vertical = 6.dp),
+                    .background(GlanceTheme.colors.surfaceVariant)
+                    .cornerRadius(16.dp)
+                    .padding(12.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalAlignment = Alignment.Start
             ) {
@@ -224,7 +180,7 @@ fun DayScheduleWidget(day: DaySchedule, dayLabel: String) {
                 verticalAlignment = Alignment.Top
             ) {
                 day.lessons.forEach { lesson ->
-                    LessonWidgetItem(lesson, dayLabel.isNotEmpty())
+                    LessonWidgetItem(lesson)
                     Spacer(modifier = GlanceModifier.height(6.dp))
                 }
             }
@@ -233,41 +189,36 @@ fun DayScheduleWidget(day: DaySchedule, dayLabel: String) {
 }
 
 @Composable
-fun LessonWidgetItem(lesson: Lesson, isHighlighted: Boolean) {
-    // Карточка пары как в приложении
+fun LessonWidgetItem(lesson: Lesson) {
+    // Карточка пары
     Row(
         modifier = GlanceModifier
             .fillMaxWidth()
-            .background(
-                if (isHighlighted)
-                    GlanceTheme.colors.surface
-                else
-                    GlanceTheme.colors.surfaceVariant
-            )
-            .cornerRadius(12.dp)
-            .padding(8.dp),
+            .background(GlanceTheme.colors.surfaceVariant)
+            .cornerRadius(16.dp)
+            .padding(10.dp),
         verticalAlignment = Alignment.Top,
         horizontalAlignment = Alignment.Start
     ) {
         // Номер пары
         Box(
             modifier = GlanceModifier
-                .size(32.dp)
+                .size(36.dp)
                 .background(GlanceTheme.colors.primaryContainer)
-                .cornerRadius(16.dp),
+                .cornerRadius(18.dp),
             contentAlignment = Alignment.Center
         ) {
             Text(
                 text = lesson.lessonNumber,
                 style = TextStyle(
-                    fontSize = 14.sp,
+                    fontSize = 16.sp,
                     fontWeight = FontWeight.Bold,
                     color = GlanceTheme.colors.onPrimaryContainer
                 )
             )
         }
         
-        Spacer(modifier = GlanceModifier.width(8.dp))
+        Spacer(modifier = GlanceModifier.width(10.dp))
         
         // Информация о паре
         Column(
@@ -279,11 +230,11 @@ fun LessonWidgetItem(lesson: Lesson, isHighlighted: Boolean) {
                 Text(
                     text = subgroup.subject,
                     style = TextStyle(
-                        fontSize = 12.sp,
+                        fontSize = 13.sp,
                         fontWeight = FontWeight.Medium,
                         color = GlanceTheme.colors.onSurface
                     ),
-                    maxLines = 1
+                    maxLines = 2
                 )
                 Spacer(modifier = GlanceModifier.height(4.dp))
                 Row(
@@ -301,7 +252,7 @@ fun LessonWidgetItem(lesson: Lesson, isHighlighted: Boolean) {
                     Text(
                         text = subgroup.room,
                         style = TextStyle(
-                            fontSize = 11.sp,
+                            fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,
                             color = GlanceTheme.colors.primary
                         )

@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@drawable/widget_preview"
+    android:padding="12dp">
+
+    <!-- Дата и кнопка обновления -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingBottom="8dp">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Понедельник, 30.01"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:textColor="#E6E1E5" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Обновить"
+            android:textSize="11sp"
+            android:textStyle="bold"
+            android:textColor="#D0BCFF"
+            android:background="@drawable/preview_button_bg"
+            android:paddingHorizontal="10dp"
+            android:paddingVertical="5dp" />
+    </LinearLayout>
+
+    <!-- Пара 1 -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:background="@drawable/preview_card_bg"
+        android:padding="10dp"
+        android:layout_marginBottom="6dp">
+
+        <TextView
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:text="1"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:textColor="#381E72"
+            android:background="@drawable/preview_number_bg"
+            android:gravity="center" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:layout_marginStart="10dp">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Математический анализ"
+                android:textSize="13sp"
+                android:textStyle="bold"
+                android:textColor="#E6E1E5"
+                android:maxLines="2"
+                android:ellipsize="end" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="• 301"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:textColor="#D0BCFF"
+                android:layout_marginTop="4dp" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- Пара 2 -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:background="@drawable/preview_card_bg"
+        android:padding="10dp">
+
+        <TextView
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:text="2"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:textColor="#381E72"
+            android:background="@drawable/preview_number_bg"
+            android:gravity="center" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:layout_marginStart="10dp">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Физика"
+                android:textSize="13sp"
+                android:textStyle="bold"
+                android:textColor="#E6E1E5"
+                android:maxLines="2"
+                android:ellipsize="end" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="• 205"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:textColor="#D0BCFF"
+                android:layout_marginTop="4dp" />
+        </LinearLayout>
+    </LinearLayout>
+
+</LinearLayout>
