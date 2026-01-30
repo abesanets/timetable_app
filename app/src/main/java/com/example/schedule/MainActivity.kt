@@ -154,7 +154,6 @@ fun ScheduleApp() {
         scope.launch {
             isLoading = true
             errorMessage = null
-            schedule = null
             try {
                 val html = withContext(Dispatchers.IO) {
                     fetcher.fetchScheduleHtml(groupInput)
@@ -170,6 +169,7 @@ fun ScheduleApp() {
                     is NoInternetException, is GroupNotFoundException, is ServerErrorException -> e.message
                     else -> "Ошибка: ${e.message}"
                 }
+                schedule = null
             } finally {
                 isLoading = false
             }
@@ -476,22 +476,9 @@ fun CallsScreen() {
 
 @Composable
 fun CallItem(lessonNumber: Int, callTime: CallTime) {
-    val scale = remember { Animatable(0.95f) }
-    
-    LaunchedEffect(Unit) {
-        scale.animateTo(
-            targetValue = 1f,
-            animationSpec = spring(
-                dampingRatio = Spring.DampingRatioLowBouncy,
-                stiffness = Spring.StiffnessLow
-            )
-        )
-    }
-    
     Card(
         modifier = Modifier
-            .fillMaxWidth()
-            .scale(scale.value),
+            .fillMaxWidth(),
         shape = MaterialTheme.shapes.large,
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainer
@@ -696,11 +683,13 @@ fun ScheduleList(schedule: Schedule) {
         todayIndex >= 0 && displayIndex > todayIndex
     }
     
-    val listState = rememberLazyListState()
+    val listState = rememberLazyListState(
+        initialFirstVisibleItemIndex = if (displayIndex >= 0) displayIndex else 0
+    )
     
-    LaunchedEffect(displayIndex) {
+    LaunchedEffect(schedule) {
         if (displayIndex >= 0) {
-            listState.animateScrollToItem(displayIndex, scrollOffset = 0)
+            listState.scrollToItem(displayIndex, scrollOffset = 0)
         }
     }
     
@@ -722,22 +711,9 @@ fun ScheduleList(schedule: Schedule) {
 
 @Composable
 fun DayScheduleItem(day: DaySchedule, isToday: Boolean = false, isTomorrow: Boolean = false) {
-    val scale = remember { Animatable(0.95f) }
-    
-    LaunchedEffect(Unit) {
-        scale.animateTo(
-            targetValue = 1f,
-            animationSpec = spring(
-                dampingRatio = Spring.DampingRatioLowBouncy,
-                stiffness = Spring.StiffnessLow
-            )
-        )
-    }
-    
     Card(
         modifier = Modifier
-            .fillMaxWidth()
-            .scale(scale.value),
+            .fillMaxWidth(),
         shape = MaterialTheme.shapes.large,
         colors = CardDefaults.cardColors(
             containerColor = if (isToday || isTomorrow)
