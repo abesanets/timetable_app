@@ -35,19 +35,20 @@ android {
     }
     
     composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.3"
+        kotlinCompilerExtensionVersion = "1.5.11"
     }
 }
 
 dependencies {
-    // Compose
-    implementation("androidx.activity:activity-compose:1.8.2")
-    implementation("androidx.compose.ui:ui:1.5.4")
-    implementation("androidx.compose.material3:material3:1.1.2")
-    implementation("androidx.compose.ui:ui-tooling-preview:1.5.4")
+    // Compose - обновленные версии
+    implementation("androidx.activity:activity-compose:1.9.0")
+    implementation("androidx.compose.ui:ui:1.6.7")
+    implementation("androidx.compose.material3:material3:1.2.1")
+    implementation("androidx.compose.ui:ui-tooling-preview:1.6.7")
+    implementation("androidx.compose.animation:animation:1.6.7")
     
     // Navigation
-    implementation("androidx.navigation:navigation-compose:2.7.6")
+    implementation("androidx.navigation:navigation-compose:2.7.7")
     
     // OkHttp для HTTP-запросов
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
@@ -56,8 +57,11 @@ dependencies {
     implementation("org.jsoup:jsoup:1.17.2")
     
     // Coroutines
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.0")
     
     // DataStore для сохранения настроек
-    implementation("androidx.datastore:datastore-preferences:1.0.0")
+    implementation("androidx.datastore:datastore-preferences:1.1.1")
+    
+    // WorkManager для фоновых задач
+    implementation("androidx.work:work-runtime-ktx:2.9.0")
 }

@@ -3,55 +3,59 @@ package com.example.schedule
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.outlined.Home
-import androidx.compose.material.icons.outlined.Notifications
-import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
+import android.Manifest
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 import java.util.*
 
-val CustomFont = FontFamily.Serif
-
 class MainActivity : ComponentActivity() {
+    
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
+        
         setContent {
-            PremiumDarkTheme {
+            MaterialYouTheme {
                 ScheduleApp()
             }
         }
@@ -59,66 +63,58 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun PremiumDarkTheme(content: @Composable () -> Unit) {
-    val darkColorScheme = darkColorScheme(
-        primary = Color(0xFFFFFFFF),
-        onPrimary = Color(0xFF0A0A0A),
-        secondary = Color(0xFFE8E8E8),
-        onSecondary = Color(0xFF0A0A0A),
-        background = Color(0xFF0A0A0A),
-        onBackground = Color(0xFFFFFFFF),
-        surface = Color(0xFF141414),
-        onSurface = Color(0xFFFFFFFF),
-        surfaceVariant = Color(0xFF1E1E1E),
-        onSurfaceVariant = Color(0xFFB8B8B8),
-        outline = Color(0xFF2A2A2A),
-        error = Color(0xFFFF6B6B)
-    )
+fun MaterialYouTheme(content: @Composable () -> Unit) {
+    val context = LocalContext.current
+    
+    val colorScheme = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        dynamicDarkColorScheme(context)
+    } else {
+        darkColorScheme(
+            primary = Color(0xFFBB86FC),
+            secondary = Color(0xFF03DAC6),
+            tertiary = Color(0xFF3700B3),
+            background = Color(0xFF1C1B1F),
+            surface = Color(0xFF1C1B1F),
+            onPrimary = Color(0xFF000000),
+            onSecondary = Color(0xFF000000),
+            onBackground = Color(0xFFE6E1E5),
+            onSurface = Color(0xFFE6E1E5)
+        )
+    }
     
     MaterialTheme(
-        colorScheme = darkColorScheme,
+        colorScheme = colorScheme,
         typography = Typography(
-            displayLarge = MaterialTheme.typography.displayLarge.copy(
-                fontFamily = CustomFont,
-                fontWeight = FontWeight.Normal
-            ),
-            headlineMedium = MaterialTheme.typography.headlineMedium.copy(
-                fontFamily = CustomFont,
-                fontWeight = FontWeight.Normal
-            ),
-            bodyLarge = MaterialTheme.typography.bodyLarge.copy(
-                fontFamily = CustomFont,
-                fontWeight = FontWeight.Normal
-            ),
-            bodyMedium = MaterialTheme.typography.bodyMedium.copy(
-                fontFamily = CustomFont,
-                fontWeight = FontWeight.Normal
-            )
+            displayLarge = MaterialTheme.typography.displayLarge.copy(fontWeight = FontWeight.Bold),
+            headlineMedium = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.SemiBold),
+            titleLarge = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold),
+            bodyLarge = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Normal),
+        ),
+        shapes = Shapes(
+            extraSmall = RoundedCornerShape(8.dp),
+            small = RoundedCornerShape(12.dp),
+            medium = RoundedCornerShape(16.dp),
+            large = RoundedCornerShape(24.dp),
+            extraLarge = RoundedCornerShape(32.dp)
         ),
         content = content
     )
 }
 
-/**
- * Навигационные маршруты
- */
-sealed class Screen(val route: String, val title: String) {
-    object Home : Screen("home", "Главная")
-    object Calls : Screen("calls", "Звонки")
-    object Settings : Screen("settings", "Настройки")
+sealed class Screen(val route: String, val title: String, val icon: ImageVector, val iconSelected: ImageVector) {
+    object Home : Screen("home", "Расписание", Icons.Outlined.Home, Icons.Filled.Home)
+    object Calls : Screen("calls", "Звонки", Icons.Outlined.Notifications, Icons.Filled.Notifications)
+    object Settings : Screen("settings", "Настройки", Icons.Outlined.Settings, Icons.Filled.Settings)
 }
 
-/**
- * Главный экран приложения с навигацией
- */
 @Composable
 fun ScheduleApp() {
     val navController = rememberNavController()
     val context = LocalContext.current
     val preferencesManager = remember { PreferencesManager(context) }
     
-    // Поднимаем состояние на уровень ScheduleApp, чтобы оно сохранялось при переключении вкладок
     var groupInput by remember { mutableStateOf("88") }
+    var loadedGroup by remember { mutableStateOf<String?>(null) }
     var schedule by remember { mutableStateOf<Schedule?>(null) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var isLoading by remember { mutableStateOf(false) }
@@ -127,12 +123,10 @@ fun ScheduleApp() {
     val fetcher = remember { ScheduleFetcher() }
     val parser = remember { ScheduleParser() }
     
-    // Загружаем последнюю группу при запуске
     LaunchedEffect(Unit) {
         preferencesManager.lastGroup.collect { savedGroup ->
             if (savedGroup != null && savedGroup.isNotBlank()) {
                 groupInput = savedGroup
-                // Автоматически загружаем расписание
                 isLoading = true
                 errorMessage = null
                 try {
@@ -143,14 +137,12 @@ fun ScheduleApp() {
                         parser.parse(html, savedGroup)
                     }
                     schedule = parsedSchedule
-                } catch (e: NoInternetException) {
-                    errorMessage = e.message
-                } catch (e: GroupNotFoundException) {
-                    errorMessage = e.message
-                } catch (e: ServerErrorException) {
-                    errorMessage = e.message
+                    loadedGroup = savedGroup
                 } catch (e: Exception) {
-                    errorMessage = "Неизвестная ошибка: ${e.message}"
+                    errorMessage = when (e) {
+                        is NoInternetException, is GroupNotFoundException, is ServerErrorException -> e.message
+                        else -> "Ошибка: ${e.message}"
+                    }
                 } finally {
                     isLoading = false
                 }
@@ -171,15 +163,13 @@ fun ScheduleApp() {
                     parser.parse(html, groupInput)
                 }
                 schedule = parsedSchedule
+                loadedGroup = groupInput
                 preferencesManager.saveLastGroup(groupInput)
-            } catch (e: NoInternetException) {
-                errorMessage = e.message
-            } catch (e: GroupNotFoundException) {
-                errorMessage = e.message
-            } catch (e: ServerErrorException) {
-                errorMessage = e.message
             } catch (e: Exception) {
-                errorMessage = "Неизвестная ошибка: ${e.message}"
+                errorMessage = when (e) {
+                    is NoInternetException, is GroupNotFoundException, is ServerErrorException -> e.message
+                    else -> "Ошибка: ${e.message}"
+                }
             } finally {
                 isLoading = false
             }
@@ -187,105 +177,55 @@ fun ScheduleApp() {
     }
     
     Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
         bottomBar = {
             NavigationBar(
-                containerColor = MaterialTheme.colorScheme.surface,
-                tonalElevation = 8.dp,
+                containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                tonalElevation = 0.dp,
                 modifier = Modifier
-                    .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp))
+                    .fillMaxWidth()
+                    .navigationBarsPadding()
             ) {
                 val navBackStackEntry by navController.currentBackStackEntryAsState()
                 val currentDestination = navBackStackEntry?.destination
                 
-                NavigationBarItem(
-                    icon = { 
-                        Icon(
-                            if (currentDestination?.route == Screen.Calls.route) 
-                                Icons.Filled.Notifications 
-                            else 
-                                Icons.Outlined.Notifications,
-                            contentDescription = Screen.Calls.title
-                        ) 
-                    },
-                    label = { Text(Screen.Calls.title, fontFamily = CustomFont) },
-                    selected = currentDestination?.hierarchy?.any { it.route == Screen.Calls.route } == true,
-                    onClick = {
-                        navController.navigate(Screen.Calls.route) {
-                            popUpTo(navController.graph.findStartDestination().id) {
-                                saveState = true
+                listOf(Screen.Home, Screen.Calls, Screen.Settings).forEach { screen ->
+                    val selected = currentDestination?.hierarchy?.any { it.route == screen.route } == true
+                    
+                    NavigationBarItem(
+                        icon = {
+                            Icon(
+                                imageVector = if (selected) screen.iconSelected else screen.icon,
+                                contentDescription = screen.title,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        },
+                        label = { 
+                            Text(
+                                screen.title,
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal
+                            ) 
+                        },
+                        selected = selected,
+                        onClick = {
+                            navController.navigate(screen.route) {
+                                popUpTo(navController.graph.findStartDestination().id) {
+                                    saveState = true
+                                }
+                                launchSingleTop = true
+                                restoreState = true
                             }
-                            launchSingleTop = true
-                            restoreState = true
-                        }
-                    },
-                    colors = NavigationBarItemDefaults.colors(
-                        selectedIconColor = MaterialTheme.colorScheme.onPrimary,
-                        selectedTextColor = MaterialTheme.colorScheme.primary,
-                        indicatorColor = MaterialTheme.colorScheme.primary,
-                        unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                        unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
+                        },
+                        colors = NavigationBarItemDefaults.colors(
+                            selectedIconColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                            selectedTextColor = MaterialTheme.colorScheme.onSurface,
+                            indicatorColor = MaterialTheme.colorScheme.secondaryContainer,
+                            unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                            unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     )
-                )
-                
-                NavigationBarItem(
-                    icon = { 
-                        Icon(
-                            if (currentDestination?.route == Screen.Home.route) 
-                                Icons.Filled.Home 
-                            else 
-                                Icons.Outlined.Home,
-                            contentDescription = Screen.Home.title
-                        ) 
-                    },
-                    label = { Text(Screen.Home.title, fontFamily = CustomFont) },
-                    selected = currentDestination?.hierarchy?.any { it.route == Screen.Home.route } == true,
-                    onClick = {
-                        navController.navigate(Screen.Home.route) {
-                            popUpTo(navController.graph.findStartDestination().id) {
-                                saveState = true
-                            }
-                            launchSingleTop = true
-                            restoreState = true
-                        }
-                    },
-                    colors = NavigationBarItemDefaults.colors(
-                        selectedIconColor = MaterialTheme.colorScheme.onPrimary,
-                        selectedTextColor = MaterialTheme.colorScheme.primary,
-                        indicatorColor = MaterialTheme.colorScheme.primary,
-                        unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                        unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                )
-                
-                NavigationBarItem(
-                    icon = { 
-                        Icon(
-                            if (currentDestination?.route == Screen.Settings.route) 
-                                Icons.Filled.Settings 
-                            else 
-                                Icons.Outlined.Settings,
-                            contentDescription = Screen.Settings.title
-                        ) 
-                    },
-                    label = { Text(Screen.Settings.title, fontFamily = CustomFont) },
-                    selected = currentDestination?.hierarchy?.any { it.route == Screen.Settings.route } == true,
-                    onClick = {
-                        navController.navigate(Screen.Settings.route) {
-                            popUpTo(navController.graph.findStartDestination().id) {
-                                saveState = true
-                            }
-                            launchSingleTop = true
-                            restoreState = true
-                        }
-                    },
-                    colors = NavigationBarItemDefaults.colors(
-                        selectedIconColor = MaterialTheme.colorScheme.onPrimary,
-                        selectedTextColor = MaterialTheme.colorScheme.primary,
-                        indicatorColor = MaterialTheme.colorScheme.primary,
-                        unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                        unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                )
+                }
             }
         }
     ) { paddingValues ->
@@ -295,60 +235,9 @@ fun ScheduleApp() {
             modifier = Modifier.padding(paddingValues)
         ) {
             composable(
-                route = Screen.Calls.route,
-                enterTransition = {
-                    slideInHorizontally(
-                        initialOffsetX = { -it },
-                        animationSpec = spring(
-                            dampingRatio = Spring.DampingRatioNoBouncy,
-                            stiffness = Spring.StiffnessMediumLow
-                        )
-                    )
-                },
-                exitTransition = {
-                    slideOutHorizontally(
-                        targetOffsetX = { -it },
-                        animationSpec = spring(
-                            dampingRatio = Spring.DampingRatioNoBouncy,
-                            stiffness = Spring.StiffnessMediumLow
-                        )
-                    )
-                }
-            ) {
-                CallsScreen()
-            }
-            composable(
                 route = Screen.Home.route,
-                enterTransition = {
-                    slideInHorizontally(
-                        initialOffsetX = { 
-                            when (initialState.destination.route) {
-                                Screen.Calls.route -> it  // Звонки -> Главная: приезжает справа
-                                Screen.Settings.route -> -it  // Настройки -> Главная: приезжает слева
-                                else -> 0
-                            }
-                        },
-                        animationSpec = spring(
-                            dampingRatio = Spring.DampingRatioNoBouncy,
-                            stiffness = Spring.StiffnessMediumLow
-                        )
-                    )
-                },
-                exitTransition = {
-                    slideOutHorizontally(
-                        targetOffsetX = { 
-                            when (targetState.destination.route) {
-                                Screen.Calls.route -> it  // Главная -> Звонки: уезжает вправо
-                                Screen.Settings.route -> -it  // Главная -> Настройки: уезжает влево
-                                else -> 0
-                            }
-                        },
-                        animationSpec = spring(
-                            dampingRatio = Spring.DampingRatioNoBouncy,
-                            stiffness = Spring.StiffnessMediumLow
-                        )
-                    )
-                }
+                enterTransition = { fadeIn(tween(400, easing = FastOutSlowInEasing)) },
+                exitTransition = { fadeOut(tween(300, easing = FastOutSlowInEasing)) }
             ) {
                 HomeScreen(
                     groupInput = groupInput,
@@ -356,29 +245,21 @@ fun ScheduleApp() {
                     schedule = schedule,
                     errorMessage = errorMessage,
                     isLoading = isLoading,
-                    loadSchedule = loadSchedule
+                    loadSchedule = loadSchedule,
+                    loadedGroup = loadedGroup
                 )
             }
             composable(
+                route = Screen.Calls.route,
+                enterTransition = { fadeIn(tween(400, easing = FastOutSlowInEasing)) },
+                exitTransition = { fadeOut(tween(300, easing = FastOutSlowInEasing)) }
+            ) {
+                CallsScreen()
+            }
+            composable(
                 route = Screen.Settings.route,
-                enterTransition = {
-                    slideInHorizontally(
-                        initialOffsetX = { it },
-                        animationSpec = spring(
-                            dampingRatio = Spring.DampingRatioNoBouncy,
-                            stiffness = Spring.StiffnessMediumLow
-                        )
-                    )
-                },
-                exitTransition = {
-                    slideOutHorizontally(
-                        targetOffsetX = { it },
-                        animationSpec = spring(
-                            dampingRatio = Spring.DampingRatioNoBouncy,
-                            stiffness = Spring.StiffnessMediumLow
-                        )
-                    )
-                }
+                enterTransition = { fadeIn(tween(400, easing = FastOutSlowInEasing)) },
+                exitTransition = { fadeOut(tween(300, easing = FastOutSlowInEasing)) }
             ) {
                 SettingsScreen()
             }
@@ -386,9 +267,7 @@ fun ScheduleApp() {
     }
 }
 
-/**
- * Экран главной (текущее расписание)
- */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     groupInput: String,
@@ -396,139 +275,148 @@ fun HomeScreen(
     schedule: Schedule?,
     errorMessage: String?,
     isLoading: Boolean,
-    loadSchedule: () -> Unit
+    loadSchedule: () -> Unit,
+    loadedGroup: String?
 ) {
     Surface(
         modifier = Modifier.fillMaxSize(),
         color = MaterialTheme.colorScheme.background
     ) {
-        Column(
-            modifier = Modifier.fillMaxSize()
-        ) {
-            // Компактная шапка с поиском
+        Column(modifier = Modifier.fillMaxSize()) {
+            TopAppBar(
+                title = {
+                    Text(
+                        "Расписание",
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    titleContentColor = MaterialTheme.colorScheme.onSurface
+                ),
+                modifier = Modifier.statusBarsPadding()
+            )
+            
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(bottomStart = 16.dp, bottomEnd = 16.dp))
                     .background(MaterialTheme.colorScheme.surface)
-                    .padding(horizontal = 20.dp, vertical = 16.dp)
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
             ) {
-                Text(
-                    text = "Расписание",
-                    fontSize = 26.sp,
-                    fontWeight = FontWeight.Normal,
-                    fontFamily = CustomFont,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 6.dp),
-                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                )
-                
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     OutlinedTextField(
                         value = groupInput,
                         onValueChange = onGroupInputChange,
-                        placeholder = { 
-                            Text(
-                                "Группа", 
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                fontFamily = CustomFont,
-                                fontSize = 19.sp
-                            ) 
-                        },
+                        placeholder = { Text("Номер группы") },
                         modifier = Modifier.weight(1f),
                         enabled = !isLoading,
                         singleLine = true,
+                        shape = MaterialTheme.shapes.large,
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = MaterialTheme.colorScheme.primary,
-                            unfocusedBorderColor = MaterialTheme.colorScheme.outline,
-                            focusedTextColor = MaterialTheme.colorScheme.primary,
-                            unfocusedTextColor = MaterialTheme.colorScheme.onSurface
-                        ),
-                        shape = RoundedCornerShape(12.dp),
-                        textStyle = LocalTextStyle.current.copy(
-                            fontFamily = CustomFont,
-                            fontSize = 19.sp
+                            unfocusedBorderColor = MaterialTheme.colorScheme.outline
                         )
                     )
                     
-                    Button(
+                    FilledIconButton(
                         onClick = loadSchedule,
                         enabled = !isLoading && groupInput.isNotBlank(),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.primary,
-                            contentColor = MaterialTheme.colorScheme.onPrimary
-                        ),
-                        shape = RoundedCornerShape(12.dp),
-                        modifier = Modifier
-                            .height(56.dp)
-                            .width(56.dp),
-                        contentPadding = PaddingValues(0.dp)
+                        modifier = Modifier.size(52.dp),
+                        colors = IconButtonDefaults.filledIconButtonColors(
+                            containerColor = MaterialTheme.colorScheme.primaryContainer,
+                            contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
                     ) {
                         if (isLoading) {
                             CircularProgressIndicator(
-                                modifier = Modifier.size(24.dp),
-                                color = MaterialTheme.colorScheme.onPrimary,
+                                modifier = Modifier.size(22.dp),
                                 strokeWidth = 2.dp
                             )
                         } else {
+                            val isNewGroup = loadedGroup != null && groupInput != loadedGroup
                             Icon(
-                                imageVector = if (schedule != null) Icons.Default.Refresh else Icons.Default.Search,
-                                contentDescription = if (schedule != null) "Обновить" else "Поиск",
-                                modifier = Modifier.size(24.dp)
+                                imageVector = if (isNewGroup) Icons.Default.Search else Icons.Default.Refresh,
+                                contentDescription = null,
+                                modifier = Modifier.size(22.dp)
                             )
                         }
                     }
                 }
             }
             
-            // Контент
-            Box(modifier = Modifier.fillMaxSize()) {
-                // Анимация перехода между состояниями
-                AnimatedContent(
-                    targetState = when {
-                        isLoading -> "loading"
-                        errorMessage != null -> "error"
-                        schedule != null -> "content"
-                        else -> "empty"
-                    },
-                    transitionSpec = {
-                        fadeIn(animationSpec = tween(300)) togetherWith
-                                fadeOut(animationSpec = tween(300))
-                    },
-                    label = "content_transition",
-                    modifier = Modifier.fillMaxSize()
-                ) { state ->
-                    Box(modifier = Modifier.fillMaxSize()) {
-                        when (state) {
-                            "loading" -> {
-                                CircularProgressIndicator(
-                                    modifier = Modifier
-                                        .align(Alignment.Center)
-                                        .size(32.dp),
-                                    color = MaterialTheme.colorScheme.primary,
-                                    strokeWidth = 2.dp
+            AnimatedContent(
+                targetState = when {
+                    isLoading -> "loading"
+                    errorMessage != null -> "error"
+                    schedule != null -> "content"
+                    else -> "empty"
+                },
+                transitionSpec = {
+                    fadeIn(tween(500, easing = FastOutSlowInEasing)) togetherWith 
+                    fadeOut(tween(400, easing = FastOutSlowInEasing))
+                },
+                label = "content_transition",
+                modifier = Modifier.fillMaxSize()
+            ) { state ->
+                Box(modifier = Modifier.fillMaxSize()) {
+                    when (state) {
+                        "loading" -> {
+                            CircularProgressIndicator(
+                                modifier = Modifier
+                                    .align(Alignment.Center)
+                                    .size(48.dp),
+                                strokeWidth = 4.dp
+                            )
+                        }
+                        "error" -> {
+                            Column(
+                                modifier = Modifier
+                                    .align(Alignment.Center)
+                                    .padding(32.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Outlined.Close,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(64.dp),
+                                    tint = MaterialTheme.colorScheme.error
                                 )
-                            }
-                            "error" -> {
                                 Text(
                                     text = errorMessage ?: "",
-                                    color = MaterialTheme.colorScheme.onBackground,
-                                    fontSize = 16.sp,
-                                    fontFamily = CustomFont,
-                                    modifier = Modifier
-                                        .align(Alignment.Center)
-                                        .padding(24.dp),
-                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    textAlign = TextAlign.Center,
+                                    color = MaterialTheme.colorScheme.onSurface
                                 )
                             }
-                            "content" -> {
-                                schedule?.let { ScheduleList(schedule = it) }
+                        }
+                        "content" -> {
+                            schedule?.let { ScheduleList(schedule = it) }
+                        }
+                        "empty" -> {
+                            Column(
+                                modifier = Modifier
+                                    .align(Alignment.Center)
+                                    .padding(32.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Outlined.Search,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(64.dp),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Text(
+                                    text = "Введите номер группы",
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
                             }
                         }
                     }
@@ -538,9 +426,7 @@ fun HomeScreen(
     }
 }
 
-/**
- * Экран звонков
- */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CallsScreen() {
     val calendar = Calendar.getInstance()
@@ -552,172 +438,251 @@ fun CallsScreen() {
         modifier = Modifier.fillMaxSize(),
         color = MaterialTheme.colorScheme.background
     ) {
-        Column(
-            modifier = Modifier.fillMaxSize()
-        ) {
-            // Шапка
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(bottomStart = 16.dp, bottomEnd = 16.dp))
-                    .background(MaterialTheme.colorScheme.surface)
-                    .padding(horizontal = 20.dp, vertical = 16.dp)
-            ) {
-                Text(
-                    text = "Расписание звонков",
-                    fontSize = 26.sp,
-                    fontWeight = FontWeight.Normal,
-                    fontFamily = CustomFont,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.fillMaxWidth(),
-                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                )
-                
-                Spacer(modifier = Modifier.height(8.dp))
-                
-                Text(
-                    text = dayName,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Normal,
-                    fontFamily = CustomFont,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.fillMaxWidth(),
-                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                )
-            }
+        Column(modifier = Modifier.fillMaxSize()) {
+            TopAppBar(
+                title = {
+                    Column {
+                        Text(
+                            "Звонки",
+                            style = MaterialTheme.typography.headlineMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            dayName,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    titleContentColor = MaterialTheme.colorScheme.onSurface
+                ),
+                modifier = Modifier.statusBarsPadding()
+            )
             
-            // Список звонков
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(20.dp),
+                contentPadding = PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 items(schedule.size) { index ->
-                    CallItem(
-                        lessonNumber = index + 1,
-                        callTime = schedule[index]
-                    )
+                    CallItem(lessonNumber = index + 1, callTime = schedule[index])
                 }
             }
         }
     }
 }
 
-/**
- * Элемент звонка
- */
 @Composable
 fun CallItem(lessonNumber: Int, callTime: CallTime) {
-    Row(
+    val scale = remember { Animatable(0.95f) }
+    
+    LaunchedEffect(Unit) {
+        scale.animateTo(
+            targetValue = 1f,
+            animationSpec = spring(
+                dampingRatio = Spring.DampingRatioLowBouncy,
+                stiffness = Spring.StiffnessLow
+            )
+        )
+    }
+    
+    Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
-            .background(MaterialTheme.colorScheme.surface)
-            .padding(16.dp),
-        horizontalArrangement = Arrangement.spacedBy(16.dp),
-        verticalAlignment = Alignment.CenterVertically
+            .scale(scale.value),
+        shape = MaterialTheme.shapes.large,
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainer
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
-        // Номер пары
-        Box(
+        Row(
             modifier = Modifier
-                .size(48.dp)
-                .clip(RoundedCornerShape(12.dp))
-                .background(MaterialTheme.colorScheme.primary),
-            contentAlignment = Alignment.Center
+                .fillMaxWidth()
+                .padding(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                text = lessonNumber.toString(),
-                fontSize = 24.sp,
-                fontWeight = FontWeight.Normal,
-                fontFamily = CustomFont,
-                color = MaterialTheme.colorScheme.onPrimary
-            )
-        }
-        
-        // Время
-        Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
-        ) {
-            Text(
-                text = "${callTime.firstStart} - ${callTime.firstEnd}  |  ${callTime.secondStart} - ${callTime.secondEnd}",
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Normal,
-                fontFamily = CustomFont,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-            Text(
-                text = "Пара $lessonNumber",
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Normal,
-                fontFamily = CustomFont,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .clip(CircleShape)
+                    .background(
+                        Brush.linearGradient(
+                            colors = listOf(
+                                MaterialTheme.colorScheme.primaryContainer,
+                                MaterialTheme.colorScheme.secondaryContainer
+                            )
+                        )
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = lessonNumber.toString(),
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+            }
+            
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(2.dp)
+            ) {
+                Text(
+                    text = "Пара $lessonNumber",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = "${callTime.firstStart} - ${callTime.firstEnd}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = "${callTime.secondStart} - ${callTime.secondEnd}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
     }
 }
 
-/**
- * Экран настроек (заглушка)
- */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen() {
+    val context = LocalContext.current
+    val preferencesManager = remember { PreferencesManager(context) }
+    val notificationScheduler = remember { NotificationScheduler(context) }
+    val notificationHelper = remember { NotificationHelper(context) }
+    
+    val notificationsEnabled by preferencesManager.notificationsEnabled.collectAsState(initial = false)
+    val scope = rememberCoroutineScope()
+    
+    val requestPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted: Boolean ->
+        if (isGranted) {
+            scope.launch {
+                preferencesManager.setNotificationsEnabled(true)
+                notificationScheduler.scheduleNotification()
+            }
+        }
+    }
+    
     Surface(
         modifier = Modifier.fillMaxSize(),
         color = MaterialTheme.colorScheme.background
     ) {
-        Column(
-            modifier = Modifier.fillMaxSize()
-        ) {
-            // Шапка
+        Column(modifier = Modifier.fillMaxSize()) {
+            TopAppBar(
+                title = {
+                    Text(
+                        "Настройки",
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    titleContentColor = MaterialTheme.colorScheme.onSurface
+                ),
+                modifier = Modifier.statusBarsPadding()
+            )
+            
             Column(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(bottomStart = 16.dp, bottomEnd = 16.dp))
-                    .background(MaterialTheme.colorScheme.surface)
-                    .padding(horizontal = 20.dp, vertical = 16.dp)
+                    .fillMaxSize()
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.Top
             ) {
-                Text(
-                    text = "Настройки",
-                    fontSize = 26.sp,
-                    fontWeight = FontWeight.Normal,
-                    fontFamily = CustomFont,
-                    color = MaterialTheme.colorScheme.primary,
+                Card(
                     modifier = Modifier.fillMaxWidth(),
-                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                )
-            }
-            
-            // Контент
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "Скоро здесь появятся настройки",
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Normal,
-                    fontFamily = CustomFont,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                    modifier = Modifier.padding(24.dp)
-                )
+                    shape = MaterialTheme.shapes.large,
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceContainer
+                    )
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable(
+                                indication = null,
+                                interactionSource = remember { MutableInteractionSource() }
+                            ) {
+                                val newValue = !notificationsEnabled
+                                if (newValue) {
+                                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                                        requestPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                                    } else {
+                                        scope.launch {
+                                            preferencesManager.setNotificationsEnabled(true)
+                                            notificationScheduler.scheduleNotification()
+                                        }
+                                    }
+                                } else {
+                                    scope.launch {
+                                        preferencesManager.setNotificationsEnabled(false)
+                                        notificationScheduler.cancelNotification()
+                                    }
+                                }
+                            }
+                            .padding(16.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(
+                            modifier = Modifier.weight(1f),
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Text(
+                                text = "Уведомления",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Text(
+                                text = "Получать расписание на следующий день",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        
+                        Switch(
+                            checked = notificationsEnabled,
+                            onCheckedChange = { enabled ->
+                                if (enabled) {
+                                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                                        requestPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                                    } else {
+                                        scope.launch {
+                                            preferencesManager.setNotificationsEnabled(true)
+                                            notificationScheduler.scheduleNotification()
+                                        }
+                                    }
+                                } else {
+                                    scope.launch {
+                                        preferencesManager.setNotificationsEnabled(false)
+                                        notificationScheduler.cancelNotification()
+                                    }
+                                }
+                            }
+                        )
+                    }
+                }
             }
         }
     }
 }
 
-/**
- * Список расписания (scrollable)
- */
 @Composable
 fun ScheduleList(schedule: Schedule) {
-    // Находим индекс текущего дня
-    val displayIndex = remember(schedule) {
-        findTodayIndex(schedule.days)
-    }
+    val displayIndex = remember(schedule) { findTodayIndex(schedule.days) }
     
-    // Определяем, показываем ли мы завтра
     val showingTomorrow = remember(schedule, displayIndex) {
         val today = Calendar.getInstance()
         val dateFormat = SimpleDateFormat("dd.MM.yyyy", Locale("ru"))
@@ -728,25 +693,21 @@ fun ScheduleList(schedule: Schedule) {
             datePart == todayString
         }
         
-        // Если displayIndex != todayIndex, значит показываем завтра
         todayIndex >= 0 && displayIndex > todayIndex
     }
     
-    // Создаем listState с начальной позицией на текущем дне
     val listState = rememberLazyListState()
     
-    // Прокручиваем к текущему дню после загрузки
     LaunchedEffect(displayIndex) {
         if (displayIndex >= 0) {
-            // Используем offset для небольшого отступа от навбара
-            listState.scrollToItem(displayIndex, scrollOffset = 30)
+            listState.animateScrollToItem(displayIndex, scrollOffset = 0)
         }
     }
     
     LazyColumn(
         state = listState,
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 20.dp, bottom = 16.dp),
+        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 16.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         items(schedule.days.size) { index ->
@@ -754,19 +715,244 @@ fun ScheduleList(schedule: Schedule) {
             val isToday = index == displayIndex && !showingTomorrow
             val isTomorrow = index == displayIndex && showingTomorrow
             
-            // Добавляем отступ сверху для текущего дня, чтобы предыдущий не был виден
-            if (isToday || isTomorrow) {
-                Spacer(modifier = Modifier.height(0.dp))
-            }
-            
             DayScheduleItem(day = day, isToday = isToday, isTomorrow = isTomorrow)
         }
     }
 }
 
-/**
- * Расписание звонков для будних дней (с делением на части)
- */
+@Composable
+fun DayScheduleItem(day: DaySchedule, isToday: Boolean = false, isTomorrow: Boolean = false) {
+    val scale = remember { Animatable(0.95f) }
+    
+    LaunchedEffect(Unit) {
+        scale.animateTo(
+            targetValue = 1f,
+            animationSpec = spring(
+                dampingRatio = Spring.DampingRatioLowBouncy,
+                stiffness = Spring.StiffnessLow
+            )
+        )
+    }
+    
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .scale(scale.value),
+        shape = MaterialTheme.shapes.large,
+        colors = CardDefaults.cardColors(
+            containerColor = if (isToday || isTomorrow)
+                MaterialTheme.colorScheme.primaryContainer
+            else
+                MaterialTheme.colorScheme.surfaceContainer
+        ),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = if (isToday || isTomorrow) 4.dp else 0.dp
+        )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(
+                    text = day.dayDate,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = if (isToday || isTomorrow)
+                        MaterialTheme.colorScheme.onPrimaryContainer
+                    else
+                        MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.weight(1f)
+                )
+                
+                if (isToday) {
+                    AssistChip(
+                        onClick = { },
+                        label = { Text("Сегодня", fontWeight = FontWeight.SemiBold, fontSize = 12.sp) },
+                        colors = AssistChipDefaults.assistChipColors(
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            labelColor = MaterialTheme.colorScheme.onPrimary
+                        ),
+                        modifier = Modifier.height(28.dp)
+                    )
+                }
+                if (isTomorrow) {
+                    AssistChip(
+                        onClick = { },
+                        label = { Text("Завтра", fontWeight = FontWeight.SemiBold, fontSize = 12.sp) },
+                        colors = AssistChipDefaults.assistChipColors(
+                            containerColor = MaterialTheme.colorScheme.secondary,
+                            labelColor = MaterialTheme.colorScheme.onSecondary
+                        ),
+                        modifier = Modifier.height(28.dp)
+                    )
+                }
+            }
+            
+            if (day.lessons.isEmpty()) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.DateRange,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Text(
+                        text = "Нет занятий",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            } else {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    day.lessons.forEach { lesson ->
+                        LessonItem(lesson = lesson, isHighlighted = isToday || isTomorrow)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun LessonItem(lesson: Lesson, isHighlighted: Boolean = false) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.medium,
+        colors = CardDefaults.cardColors(
+            containerColor = if (isHighlighted)
+                MaterialTheme.colorScheme.surface
+            else
+                MaterialTheme.colorScheme.surfaceVariant
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(
+                        Brush.linearGradient(
+                            colors = listOf(
+                                MaterialTheme.colorScheme.primary,
+                                MaterialTheme.colorScheme.tertiary
+                            )
+                        )
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = lesson.lessonNumber,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onPrimary
+                )
+            }
+            
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                if (lesson.subgroups.size == 1) {
+                    val subgroup = lesson.subgroups[0]
+                    Text(
+                        text = subgroup.subject,
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.Place,
+                            contentDescription = null,
+                            modifier = Modifier.size(14.dp),
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                        Text(
+                            text = subgroup.room,
+                            style = MaterialTheme.typography.bodySmall,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                } else {
+                    lesson.subgroups.forEachIndexed { index, subgroup ->
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(3.dp)
+                        ) {
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                verticalAlignment = Alignment.Top
+                            ) {
+                                Text(
+                                    text = "${index + 1}.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Column(
+                                    modifier = Modifier.weight(1f),
+                                    verticalArrangement = Arrangement.spacedBy(3.dp)
+                                ) {
+                                    Text(
+                                        text = subgroup.subject,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        fontWeight = FontWeight.Medium,
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                        maxLines = 2,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                    Row(
+                                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Outlined.Place,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(12.dp),
+                                            tint = MaterialTheme.colorScheme.primary
+                                        )
+                                        Text(
+                                            text = subgroup.room,
+                                            style = MaterialTheme.typography.bodySmall,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = MaterialTheme.colorScheme.primary,
+                                            fontSize = 11.sp
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                        if (index < lesson.subgroups.size - 1) {
+                            Spacer(modifier = Modifier.height(3.dp))
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
 val WEEKDAY_SCHEDULE = listOf(
     CallTime("09:00", "09:45", "09:55", "10:40"),
     CallTime("10:50", "11:35", "11:55", "12:40"),
@@ -776,9 +962,6 @@ val WEEKDAY_SCHEDULE = listOf(
     CallTime("18:30", "19:15", "19:25", "20:10")
 )
 
-/**
- * Расписание звонков для субботы (с делением на части)
- */
 val SATURDAY_SCHEDULE = listOf(
     CallTime("09:00", "09:45", "09:55", "10:40"),
     CallTime("10:50", "11:35", "11:55", "12:40"),
@@ -788,9 +971,6 @@ val SATURDAY_SCHEDULE = listOf(
     CallTime("18:20", "19:05", "19:15", "20:00")
 )
 
-/**
- * Модель времени звонка
- */
 data class CallTime(
     val firstStart: String,
     val firstEnd: String,
@@ -798,27 +978,20 @@ data class CallTime(
     val secondEnd: String
 )
 
-/**
- * Проверяет, закончились ли все пары на сегодня
- */
 fun areClassesFinishedForToday(day: DaySchedule): Boolean {
     if (day.lessons.isEmpty()) return true
     
     val now = Calendar.getInstance()
     val currentTime = now.get(Calendar.HOUR_OF_DAY) * 60 + now.get(Calendar.MINUTE)
     
-    // Определяем, суббота ли сегодня
     val isSaturday = now.get(Calendar.DAY_OF_WEEK) == Calendar.SATURDAY
     val schedule = if (isSaturday) SATURDAY_SCHEDULE else WEEKDAY_SCHEDULE
     
-    // Находим последнюю пару
     val lastLesson = day.lessons.maxByOrNull { it.lessonNumber.toIntOrNull() ?: 0 } ?: return true
     val lastLessonNumber = lastLesson.lessonNumber.toIntOrNull() ?: return true
     
-    // Проверяем индекс (номер пары - 1)
     if (lastLessonNumber < 1 || lastLessonNumber > schedule.size) return true
     
-    // Получаем время окончания последней пары (вторая часть)
     val endTime = schedule[lastLessonNumber - 1].secondEnd
     val endParts = endTime.split(":")
     val endMinutes = endParts[0].toInt() * 60 + endParts[1].toInt()
@@ -826,212 +999,22 @@ fun areClassesFinishedForToday(day: DaySchedule): Boolean {
     return currentTime >= endMinutes
 }
 
-/**
- * Находит индекс текущего дня в списке расписания
- * Если пары на сегодня закончились, возвращает индекс завтрашнего дня
- */
 fun findTodayIndex(days: List<DaySchedule>): Int {
     val today = Calendar.getInstance()
     val dateFormat = SimpleDateFormat("dd.MM.yyyy", Locale("ru"))
     val todayString = dateFormat.format(today.time)
     
-    // Находим индекс сегодняшнего дня
     val todayIndex = days.indexOfFirst { day ->
         val datePart = day.dayDate.substringAfter(", ").trim()
         datePart == todayString
     }
     
-    // Если сегодняшний день найден, проверяем, закончились ли пары
     if (todayIndex >= 0) {
         val todaySchedule = days[todayIndex]
         if (areClassesFinishedForToday(todaySchedule)) {
-            // Пары закончились, возвращаем следующий день
             return if (todayIndex + 1 < days.size) todayIndex + 1 else todayIndex
         }
     }
     
     return todayIndex
-}
-
-/**
- * Расписание на один день
- */
-@Composable
-fun DayScheduleItem(day: DaySchedule, isToday: Boolean = false, isTomorrow: Boolean = false) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
-            .background(
-                if (isToday || isTomorrow) 
-                    MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
-                else 
-                    MaterialTheme.colorScheme.surface
-            )
-            .padding(16.dp)
-    ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Text(
-                text = day.dayDate,
-                fontSize = 21.sp,
-                fontWeight = FontWeight.Normal,
-                fontFamily = CustomFont,
-                color = if (isToday || isTomorrow) 
-                    MaterialTheme.colorScheme.primary 
-                else 
-                    MaterialTheme.colorScheme.primary,
-                modifier = Modifier.weight(1f)
-            )
-            if (isToday) {
-                Text(
-                    text = "Сегодня",
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Normal,
-                    fontFamily = CustomFont,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(6.dp))
-                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.2f))
-                        .padding(horizontal = 8.dp, vertical = 4.dp)
-                )
-            }
-            if (isTomorrow) {
-                Text(
-                    text = "Завтра",
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Normal,
-                    fontFamily = CustomFont,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(6.dp))
-                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.2f))
-                        .padding(horizontal = 8.dp, vertical = 4.dp)
-                )
-            }
-        }
-        
-        Spacer(modifier = Modifier.height(12.dp))
-        
-        if (day.lessons.isEmpty()) {
-            Text(
-                text = "Нет занятий",
-                fontSize = 14.sp,
-                fontFamily = CustomFont,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                fontWeight = FontWeight.Normal
-            )
-        } else {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                day.lessons.forEach { lesson ->
-                    LessonItem(lesson = lesson)
-                }
-            }
-        }
-    }
-}
-
-/**
- * Одно занятие (пара с подгруппами)
- */
-@Composable
-fun LessonItem(lesson: Lesson) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant)
-            .padding(12.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        // Номер пары
-        Box(
-            modifier = Modifier
-                .size(40.dp)
-                .clip(RoundedCornerShape(8.dp))
-                .background(MaterialTheme.colorScheme.primary),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = lesson.lessonNumber,
-                fontSize = 23.sp,
-                fontWeight = FontWeight.Normal,
-                fontFamily = CustomFont,
-                color = MaterialTheme.colorScheme.onPrimary
-            )
-        }
-        
-        // Информация о паре
-        Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(2.dp)
-        ) {
-            if (lesson.subgroups.size == 1) {
-                val subgroup = lesson.subgroups[0]
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(0.dp)
-                ) {
-                    Text(
-                        text = subgroup.subject,
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Normal,
-                        fontFamily = CustomFont,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    Text(
-                        text = subgroup.room,
-                        fontSize = 14.sp,
-                        color = MaterialTheme.colorScheme.primary,
-                        fontWeight = FontWeight.Normal,
-                        fontFamily = CustomFont
-                    )
-                }
-            } else {
-                lesson.subgroups.forEachIndexed { index, subgroup ->
-                    Column(
-                        modifier = Modifier.padding(bottom = if (index < lesson.subgroups.size - 1) 4.dp else 0.dp)
-                    ) {
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(2.dp),
-                            verticalAlignment = Alignment.Top
-                        ) {
-                            Text(
-                                text = "${index + 1}.",
-                                fontSize = 12.sp,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                fontWeight = FontWeight.Normal,
-                                fontFamily = CustomFont,
-                                modifier = Modifier.padding(top = 1.dp)
-                            )
-                            Column(
-                                modifier = Modifier.weight(1f),
-                                verticalArrangement = Arrangement.spacedBy(0.dp)
-                            ) {
-                                Text(
-                                    text = subgroup.subject,
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.Normal,
-                                    fontFamily = CustomFont,
-                                    color = MaterialTheme.colorScheme.onSurface,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
-                                )
-                                Text(
-                                    text = subgroup.room,
-                                    fontSize = 14.sp,
-                                    color = MaterialTheme.colorScheme.primary,
-                                    fontWeight = FontWeight.Normal,
-                                    fontFamily = CustomFont
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
 }
