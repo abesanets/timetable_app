@@ -737,7 +737,7 @@ fun SettingsScreen() {
 fun ScheduleList(schedule: Schedule) {
     val displayIndex = remember(schedule) { findTodayIndex(schedule.days) }
     
-    val showingTomorrow = remember(schedule, displayIndex) {
+    val showingNext = remember(schedule, displayIndex) {
         val today = Calendar.getInstance()
         val dateFormat = SimpleDateFormat("dd.MM.yyyy", Locale("ru"))
         val todayString = dateFormat.format(today.time)
@@ -768,22 +768,22 @@ fun ScheduleList(schedule: Schedule) {
     ) {
         items(schedule.days.size) { index ->
             val day = schedule.days[index]
-            val isToday = index == displayIndex && !showingTomorrow
-            val isTomorrow = index == displayIndex && showingTomorrow
+            val isToday = index == displayIndex && !showingNext
+            val isNext = index == displayIndex && showingNext
             
-            DayScheduleItem(day = day, isToday = isToday, isTomorrow = isTomorrow)
+            DayScheduleItem(day = day, isToday = isToday, isNext = isNext)
         }
     }
 }
 
 @Composable
-fun DayScheduleItem(day: DaySchedule, isToday: Boolean = false, isTomorrow: Boolean = false) {
+fun DayScheduleItem(day: DaySchedule, isToday: Boolean = false, isNext: Boolean = false) {
     Card(
         modifier = Modifier
             .fillMaxWidth(),
         shape = MaterialTheme.shapes.large,
         colors = CardDefaults.cardColors(
-            containerColor = if (isToday || isTomorrow)
+            containerColor = if (isToday || isNext)
                 MaterialTheme.colorScheme.secondaryContainer
             else
                 MaterialTheme.colorScheme.surfaceContainerHigh
@@ -815,19 +815,19 @@ fun DayScheduleItem(day: DaySchedule, isToday: Boolean = false, isTomorrow: Bool
                         onClick = { },
                         label = { Text("Сегодня", fontWeight = FontWeight.SemiBold, fontSize = 12.sp) },
                         colors = AssistChipDefaults.assistChipColors(
-                            containerColor = MaterialTheme.colorScheme.tertiaryContainer,
-                            labelColor = MaterialTheme.colorScheme.onTertiaryContainer
+                            containerColor = MaterialTheme.colorScheme.primaryContainer,
+                            labelColor = MaterialTheme.colorScheme.onPrimaryContainer
                         ),
                         modifier = Modifier.height(28.dp)
                     )
                 }
-                if (isTomorrow) {
+                if (isNext) {
                     AssistChip(
                         onClick = { },
-                        label = { Text("Завтра", fontWeight = FontWeight.SemiBold, fontSize = 12.sp) },
+                        label = { Text("Следующий", fontWeight = FontWeight.SemiBold, fontSize = 12.sp) },
                         colors = AssistChipDefaults.assistChipColors(
-                            containerColor = MaterialTheme.colorScheme.tertiaryContainer,
-                            labelColor = MaterialTheme.colorScheme.onTertiaryContainer
+                            containerColor = MaterialTheme.colorScheme.primaryContainer,
+                            labelColor = MaterialTheme.colorScheme.onPrimaryContainer
                         ),
                         modifier = Modifier.height(28.dp)
                     )
@@ -855,7 +855,7 @@ fun DayScheduleItem(day: DaySchedule, isToday: Boolean = false, isTomorrow: Bool
             } else {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     day.lessons.forEach { lesson ->
-                        LessonItem(lesson = lesson, isHighlighted = isToday || isTomorrow)
+                        LessonItem(lesson = lesson, isHighlighted = isToday || isNext)
                     }
                 }
             }
@@ -872,7 +872,7 @@ fun LessonItem(lesson: Lesson, isHighlighted: Boolean = false) {
             containerColor = if (isHighlighted)
                 MaterialTheme.colorScheme.surfaceContainerHighest
             else
-                MaterialTheme.colorScheme.surfaceContainerHigh
+                MaterialTheme.colorScheme.surfaceContainer
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {

@@ -210,7 +210,7 @@ fun DayScheduleWidget(day: DaySchedule, dayLabel: String) {
             if (dayLabel.isNotEmpty()) {
                 Box(
                     modifier = GlanceModifier
-                        .background(GlanceTheme.colors.tertiaryContainer)
+                        .background(GlanceTheme.colors.primaryContainer)
                         .cornerRadius(10.dp)
                         .padding(horizontal = 8.dp, vertical = 4.dp)
                 ) {
@@ -219,7 +219,7 @@ fun DayScheduleWidget(day: DaySchedule, dayLabel: String) {
                         style = TextStyle(
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Bold,
-                            color = GlanceTheme.colors.onTertiaryContainer
+                            color = GlanceTheme.colors.onPrimaryContainer
                         )
                     )
                 }
@@ -453,7 +453,7 @@ suspend fun loadWidgetData(context: Context): WidgetData {
         
         val dayLabel = when {
             displayIndex == todayIndex -> "Сегодня"
-            displayIndex == todayIndex + 1 -> "Завтра"
+            displayIndex > todayIndex -> "Следующий"
             else -> ""
         }
         

@@ -17,15 +17,88 @@ class ScheduleParser {
     fun parse(html: String, group: String): Schedule {
         val doc = Jsoup.parse(html)
         
-        // Ищем текст "Группа - XX" (пробуем разные варианты)
-        val groupText = doc.getElementsContainingOwnText("Группа - $group").firstOrNull()
-            ?: doc.getElementsContainingOwnText("Группа-$group").firstOrNull()
-            ?: doc.getElementsContainingOwnText("Группа $group").firstOrNull()
-            ?: throw GroupNotFoundException("Группа $group не найдена")
+        // Ищем ВСЕ вхождения текста "Группа - XX" (для двух недель)
+        val groupTexts = mutableListOf<Element>()
+        groupTexts.addAll(doc.getElementsContainingOwnText("Группа - $group"))
+        if (groupTexts.isEmpty()) {
+            groupTexts.addAll(doc.getElementsContainingOwnText("Группа-$group"))
+        }
+        if (groupTexts.isEmpty()) {
+            groupTexts.addAll(doc.getElementsContainingOwnText("Группа $group"))
+        }
         
-        Log.d(TAG, "Найден текст группы: ${groupText.text()}")
+        if (groupTexts.isEmpty()) {
+            throw GroupNotFoundException("Группа $group не найдена")
+        }
         
-        // Ищем таблицу: сначала сразу после текста, потом в родителе
+        Log.d(TAG, "Найдено блоков расписания для группы: ${groupTexts.size}")
+        
+        // Собираем расписание из всех найденных блоков
+        val allDaysSchedule = mutableListOf<DaySchedule>()
+        
+        groupTexts.forEachIndexed { blockIndex, groupText ->
+            Log.d(TAG, "Обработка блока ${blockIndex + 1}: ${groupText.text()}")
+            
+            // Ищем таблицу для текущего блока
+            val table = findTableForGroup(groupText)
+            
+            if (table == null) {
+                Log.w(TAG, "Таблица для блока ${blockIndex + 1} не найдена, пропускаем")
+                return@forEachIndexed
+            }
+            
+            Log.d(TAG, "Найдена таблица для блока ${blockIndex + 1}")
+            
+            // Получаем все строки таблицы
+            val rows = table.select("tr")
+            if (rows.size < 2) {
+                Log.w(TAG, "Таблица блока ${blockIndex + 1} слишком маленькая, пропускаем")
+                return@forEachIndexed
+            }
+            
+            // Первая строка — заголовки дней
+            val headerRow = rows[0]
+            val dayHeaders = parseDayHeaders(headerRow)
+            
+            Log.d(TAG, "Блок ${blockIndex + 1}: найдено дней: ${dayHeaders.size}")
+            
+            // Инициализируем расписание для каждого дня
+            val daysSchedule = dayHeaders.map { dayName ->
+                DaySchedule(dayDate = dayName, lessons = mutableListOf())
+            }
+            
+            // Парсим строки с занятиями
+            val dataStartIndex = 2 // Пропускаем заголовок (0) и строку с номерами (1)
+            
+            for (i in dataStartIndex until rows.size) {
+                val row = rows[i]
+                val lessonNumber = (i - dataStartIndex + 1).toString()
+                parseLessonRow(row, daysSchedule, lessonNumber)
+            }
+            
+            // Добавляем дни из этого блока к общему расписанию
+            allDaysSchedule.addAll(daysSchedule)
+            
+            Log.d(TAG, "Блок ${blockIndex + 1}: добавлено ${daysSchedule.size} дней")
+        }
+        
+        if (allDaysSchedule.isEmpty()) {
+            throw GroupNotFoundException("Расписание для группы $group не найдено")
+        }
+        
+        // Логируем итоговый результат
+        Log.d(TAG, "Итого дней в расписании: ${allDaysSchedule.size}")
+        allDaysSchedule.forEachIndexed { index, day ->
+            Log.d(TAG, "День ${index + 1} (${day.dayDate}): ${day.lessons.size} занятий")
+        }
+        
+        return Schedule(group = group, days = allDaysSchedule)
+    }
+    
+    /**
+     * Находит таблицу расписания для элемента с текстом группы
+     */
+    private fun findTableForGroup(groupText: Element): Element? {
         var table: Element? = null
         
         // Вариант 1: таблица - следующий элемент после текста группы
@@ -54,51 +127,7 @@ class ScheduleParser {
             }
         }
         
-        if (table == null) {
-            throw GroupNotFoundException("Расписание для группы $group не найдено")
-        }
-        
-        Log.d(TAG, "Найдена таблица расписания")
-        
-        // Получаем все строки таблицы
-        val rows = table.select("tr")
-        if (rows.size < 2) {
-            throw Exception("Таблица слишком маленькая")
-        }
-        
-        // Первая строка — заголовки дней
-        val headerRow = rows[0]
-        val dayHeaders = parseDayHeaders(headerRow)
-        
-        Log.d(TAG, "Найдено дней: ${dayHeaders.size}")
-        dayHeaders.forEachIndexed { index, day ->
-            Log.d(TAG, "День $index: $day")
-        }
-        
-        // Инициализируем расписание для каждого дня
-        val daysSchedule = dayHeaders.map { dayName ->
-            DaySchedule(dayDate = dayName, lessons = mutableListOf())
-        }
-        
-        Log.d(TAG, "Всего строк в таблице: ${rows.size}")
-        
-        // Парсим строки с занятиями
-        // Начинаем с индекса 2, если строка 1 содержит номера пар, иначе с индекса 1
-        // Нумерация: первая строка данных = пара 1
-        val dataStartIndex = 2 // Пропускаем заголовок (0) и строку с номерами (1)
-        
-        for (i in dataStartIndex until rows.size) {
-            val row = rows[i]
-            val lessonNumber = (i - dataStartIndex + 1).toString() // Пара 1, 2, 3...
-            parseLessonRow(row, daysSchedule, lessonNumber)
-        }
-        
-        // Логируем результат
-        daysSchedule.forEachIndexed { index, day ->
-            Log.d(TAG, "День ${day.dayDate}: ${day.lessons.size} занятий")
-        }
-        
-        return Schedule(group = group, days = daysSchedule)
+        return table
     }
     
     /**
