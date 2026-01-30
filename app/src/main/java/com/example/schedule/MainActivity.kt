@@ -581,15 +581,82 @@ fun SettingsScreen() {
     val notificationsEnabled by preferencesManager.notificationsEnabled.collectAsState(initial = false)
     val scope = rememberCoroutineScope()
     
+    var showAlarmPermissionDialog by remember { mutableStateOf(false) }
+    
     val requestPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) { isGranted: Boolean ->
         if (isGranted) {
-            scope.launch {
-                preferencesManager.setNotificationsEnabled(true)
-                // Уведомление будет запланировано при следующей загрузке расписания
+            // После получения разрешения на уведомления, проверяем точные будильники
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as android.app.AlarmManager
+                if (!alarmManager.canScheduleExactAlarms()) {
+                    showAlarmPermissionDialog = true
+                } else {
+                    scope.launch {
+                        preferencesManager.setNotificationsEnabled(true)
+                    }
+                }
+            } else {
+                scope.launch {
+                    preferencesManager.setNotificationsEnabled(true)
+                }
             }
         }
+    }
+    
+    // Диалог для запроса разрешения на точные будильники
+    if (showAlarmPermissionDialog) {
+        AlertDialog(
+            onDismissRequest = { showAlarmPermissionDialog = false },
+            icon = {
+                Icon(
+                    imageVector = Icons.Outlined.Notifications,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            },
+            title = {
+                Text(
+                    text = "Разрешение на точные уведомления",
+                    style = MaterialTheme.typography.titleLarge
+                )
+            },
+            text = {
+                Text(
+                    text = "Для отправки уведомлений в точное время (после окончания последней пары) необходимо разрешить приложению использовать точные будильники.",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showAlarmPermissionDialog = false
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                            val intent = Intent(android.provider.Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM)
+                            context.startActivity(intent)
+                        }
+                        scope.launch {
+                            preferencesManager.setNotificationsEnabled(true)
+                        }
+                    }
+                ) {
+                    Text("Открыть настройки")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        showAlarmPermissionDialog = false
+                        scope.launch {
+                            preferencesManager.setNotificationsEnabled(true)
+                        }
+                    }
+                ) {
+                    Text("Пропустить")
+                }
+            }
+        )
     }
     
     Surface(
@@ -742,62 +809,6 @@ fun SettingsScreen() {
                             tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(24.dp)
                         )
-                    }
-                }
-                
-                // Разрешение на точные будильники (Android 12+)
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                    val alarmManager = remember { context.getSystemService(Context.ALARM_SERVICE) as android.app.AlarmManager }
-                    val canSchedule = remember { alarmManager.canScheduleExactAlarms() }
-                    
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = MaterialTheme.shapes.large,
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
-                        )
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable(enabled = !canSchedule) {
-                                    val intent = Intent(android.provider.Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM)
-                                    context.startActivity(intent)
-                                }
-                                .padding(16.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Column(
-                                modifier = Modifier.weight(1f),
-                                verticalArrangement = Arrangement.spacedBy(4.dp)
-                            ) {
-                                Text(
-                                    text = "Точные будильники",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-                                Text(
-                                    text = if (canSchedule) "Разрешено" else "Нажмите для настройки",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = if (canSchedule) 
-                                        MaterialTheme.colorScheme.primary 
-                                    else 
-                                        MaterialTheme.colorScheme.error
-                                )
-                            }
-                            
-                            Icon(
-                                imageVector = if (canSchedule) Icons.Outlined.Check else Icons.Outlined.Settings,
-                                contentDescription = null,
-                                tint = if (canSchedule) 
-                                    MaterialTheme.colorScheme.primary 
-                                else 
-                                    MaterialTheme.colorScheme.error,
-                                modifier = Modifier.size(24.dp)
-                            )
-                        }
                     }
                 }
             }
