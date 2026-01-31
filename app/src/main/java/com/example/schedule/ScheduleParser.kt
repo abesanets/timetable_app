@@ -286,8 +286,9 @@ class ScheduleParser {
      */
     private fun splitRoomsByDelimiters(rooms: String, expectedCount: Int): List<String> {
         // Сначала пробуем разделить по паттерну "номер (буква)" - например "503 (к)501 (к)"
-        // Ищем все вхождения паттерна: цифры + пробел + скобка + буквы + скобка
-        val roomPattern = Regex("""(\d+\s*\([^)]+\))""")
+        // Обновленный паттерн: ищем слова содержащие цифры, опционально с уточнением в скобках
+        // Это позволяет находить "2-105", "703", "2-105 (к)" и т.д.
+        val roomPattern = Regex("""([^\s(,]*\d+[^\s(,]*(\s*\([^)]+\))?)""")
         val matches = roomPattern.findAll(rooms).toList()
         
         if (matches.isNotEmpty()) {

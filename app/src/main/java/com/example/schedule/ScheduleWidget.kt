@@ -234,7 +234,7 @@ fun LessonWidgetItem(lesson: Lesson) {
                         fontWeight = FontWeight.Medium,
                         color = GlanceTheme.colors.onSurface
                     ),
-                    maxLines = 2
+                    maxLines = 1
                 )
                 Spacer(modifier = GlanceModifier.height(4.dp))
                 Row(
