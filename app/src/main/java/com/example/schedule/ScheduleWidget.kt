@@ -2,6 +2,11 @@ package com.example.schedule
 
 import android.content.Context
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.glance.*
@@ -17,36 +22,82 @@ import androidx.glance.layout.*
 import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
+import androidx.compose.ui.graphics.Color
 import java.util.*
+import androidx.glance.state.PreferencesGlanceStateDefinition
+import androidx.glance.currentState
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.glance.appwidget.CircularProgressIndicator
 
 class ScheduleWidget : GlanceAppWidget() {
     
+    override val stateDefinition = PreferencesGlanceStateDefinition
+
     override suspend fun provideGlance(context: Context, id: GlanceId) {
-        val widgetData = loadWidgetData(context)
-        
         provideContent {
-            // Всегда используем динамические цвета Material You
+            val prefs = currentState<Preferences>()
+            val isLoading = prefs[booleanPreferencesKey("is_loading")] ?: false
+            val cachedJson = prefs[stringPreferencesKey("cached_data")]
+            val errorMessage = prefs[stringPreferencesKey("error_message")]
+            val dayLabel = prefs[stringPreferencesKey("day_label")] ?: ""
+            
+            // Try to load from cache first
+            var initialData: WidgetData? = null
+            if (cachedJson != null) {
+                val schedule = WidgetUtils.dayScheduleFromJson(cachedJson)
+                if (schedule != null) {
+                    initialData = WidgetData(daySchedule = schedule, dayLabel = dayLabel)
+                }
+            }
+            
+            // State to hold the data, initialized with cached data
+            var widgetData by remember { mutableStateOf(initialData) }
+            
+            // Fallback: If no data and not loading (first run), try to load asynchronously
+            LaunchedEffect(Unit) {
+                if (widgetData == null && !isLoading) {
+                     val loadedData = loadWidgetData(context)
+                     // Update state to trigger recomposition
+                     if (loadedData.daySchedule != null) {
+                         widgetData = loadedData
+                     } else {
+                         widgetData = WidgetData(error = loadedData.error ?: errorMessage ?: "Нет данных")
+                     }
+                }
+            }
+            
+            // Final data to display
+            val finalData = widgetData ?: WidgetData(error = errorMessage ?: "Нет данных")
+
             GlanceTheme {
-                WidgetContent(widgetData)
+                WidgetContent(finalData, isLoading)
             }
         }
     }
 }
 
 @Composable
-fun WidgetContent(widgetData: WidgetData) {
-    // Используем LazyColumn для прокрутки
-    LazyColumn(
-        modifier = GlanceModifier
-            .fillMaxSize()
-            .background(GlanceTheme.colors.background)
-            .padding(12.dp)
-            .clickable(actionStartActivity<MainActivity>())
+fun WidgetContent(widgetData: WidgetData, isLoading: Boolean) {
+    Box(
+        modifier = GlanceModifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
     ) {
+        // Основной контент
+        LazyColumn(
+            modifier = GlanceModifier
+                .fillMaxSize()
+                .background(GlanceTheme.colors.background)
+                .padding(12.dp)
+                .clickable(actionStartActivity<MainActivity>())
+        ) {
         when {
             widgetData.error != null -> {
                 item {
@@ -102,6 +153,34 @@ fun WidgetContent(widgetData: WidgetData) {
             }
         }
     }
+
+    // Оверлей загрузки
+    if (isLoading) {
+        Box(
+            modifier = GlanceModifier
+                .fillMaxSize()
+                .background(Color(0x80000000)),
+            contentAlignment = Alignment.Center
+        ) {
+            Box(
+                modifier = GlanceModifier
+                    .background(GlanceTheme.colors.surface)
+                    .cornerRadius(16.dp)
+                    .padding(16.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                 // Используем Text т.к. CircularProgressIndicator может быть недоступен в старых версиях Glance
+                Text(
+                    text = "Обновление...",
+                    style = TextStyle(
+                        color = GlanceTheme.colors.primary,
+                        fontWeight = FontWeight.Bold
+                    )
+                )
+            }
+        }
+    }
+  }
 }
 
 @Composable
@@ -376,4 +455,21 @@ suspend fun loadWidgetData(context: Context): WidgetData {
 
 class ScheduleWidgetReceiver : GlanceAppWidgetReceiver() {
     override val glanceAppWidget: GlanceAppWidget = ScheduleWidget()
+
+    override fun onEnabled(context: Context) {
+        super.onEnabled(context)
+        // Schedule worker with default or saved interval
+        kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
+             val prefs = PreferencesManager(context)
+             val interval = prefs.widgetUpdateInterval.first()
+             WidgetUpdateScheduler.scheduleUpdate(context, interval)
+        }
+    }
+
+    override fun onDisabled(context: Context) {
+        super.onDisabled(context)
+        WidgetUpdateScheduler.cancelUpdate(context)
+    }
 }
+
+

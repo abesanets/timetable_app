@@ -800,7 +800,7 @@ fun SettingsScreen() {
                                 color = MaterialTheme.colorScheme.onSurface
                             )
                             Text(
-                                text = "Добавить виджет расписания",
+                                text = "Нажмите, чтобы добавить",
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -809,11 +809,111 @@ fun SettingsScreen() {
                         Icon(
                             imageVector = Icons.Outlined.Add,
                             contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(24.dp)
+                            tint = MaterialTheme.colorScheme.primary
                         )
                     }
                 }
+                
+                // Частота обновления виджета
+                val widgetUpdateInterval by preferencesManager.widgetUpdateInterval.collectAsState(initial = 60L)
+                val appWidgetManager = android.appwidget.AppWidgetManager.getInstance(context)
+                val componentName = android.content.ComponentName(context, ScheduleWidgetReceiver::class.java)
+                val widgetIds = appWidgetManager.getAppWidgetIds(componentName)
+                val hasWidget = widgetIds.isNotEmpty()
+                
+                var showIntervalDialog by remember { mutableStateOf(false) }
+                
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = MaterialTheme.shapes.large,
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+                    )
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable(enabled = hasWidget) {
+                                showIntervalDialog = true
+                            }
+                            .padding(16.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(
+                            modifier = Modifier.weight(1f),
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Text(
+                                text = "Частота обновления виджета",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                color = if (hasWidget) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                            )
+                            Text(
+                                text = if (!hasWidget) "Виджет не добавлен" else when (widgetUpdateInterval) {
+                                    0L -> "Отключено"
+                                    15L -> "Каждые 15 минут"
+                                    30L -> "Каждые 30 минут"
+                                    60L -> "Каждый час"
+                                    180L -> "Каждые 3 часа"
+                                    360L -> "Каждые 6 часов"
+                                    else -> "$widgetUpdateInterval мин"
+                                },
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = if (hasWidget) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.38f)
+                            )
+                        }
+                    }
+                }
+                
+                if (showIntervalDialog) {
+                    AlertDialog(
+                        onDismissRequest = { showIntervalDialog = false },
+                        title = { Text(text = "Частота обновления") },
+                        text = {
+                            Column {
+                                val options = listOf(
+                                    0L to "Отключено (только вручную)",
+                                    15L to "Каждые 15 минут",
+                                    30L to "Каждые 30 минут",
+                                    60L to "Каждый час",
+                                    180L to "Каждые 3 часа",
+                                    360L to "Каждые 6 часов"
+                                )
+                                
+                                options.forEach { (value, label) ->
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clickable {
+                                                scope.launch {
+                                                    preferencesManager.setWidgetUpdateInterval(value)
+                                                    WidgetUpdateScheduler.scheduleUpdate(context, value)
+                                                }
+                                                showIntervalDialog = false
+                                            }
+                                            .padding(vertical = 12.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        RadioButton(
+                                            selected = (value == widgetUpdateInterval),
+                                            onClick = null // Handled by Row clickable
+                                        )
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text(text = label)
+                                    }
+                                }
+                            }
+                        },
+                        confirmButton = {
+                            TextButton(onClick = { showIntervalDialog = false }) {
+                                Text("Отмена")
+                            }
+                        }
+                    )
+                }
+
             }
         }
     }
