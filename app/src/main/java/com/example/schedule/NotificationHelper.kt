@@ -52,12 +52,33 @@ class NotificationHelper(private val context: Context) {
             PendingIntent.FLAG_IMMUTABLE
         )
         
+        // Формируем текст уведомления
+        val isSaturday = daySchedule.dayDate.contains("суббота", ignoreCase = true) || 
+                         daySchedule.dayDate.contains("сб", ignoreCase = true)
+        val schedule = if (isSaturday) SATURDAY_SCHEDULE else WEEKDAY_SCHEDULE
+        
         val lessonsText = if (daySchedule.lessons.isEmpty()) {
             "Нет занятий"
         } else {
             daySchedule.lessons.joinToString("\n") { lesson ->
-                val subjects = lesson.subgroups.joinToString(", ") { it.subject }
-                "${lesson.lessonNumber} пара: $subjects"
+                val lessonNum = lesson.lessonNumber.toIntOrNull() ?: 0
+                val timeInfo = if (lessonNum in 1..schedule.size) {
+                    val time = schedule[lessonNum - 1]
+                    "${time.firstStart}-${time.secondEnd}"
+                } else ""
+                
+                if (lesson.subgroups.size == 1) {
+                    val sub = lesson.subgroups[0]
+                    // Компактный формат: "1. Математика (305) 09:00-10:40"
+                    "${lesson.lessonNumber}. ${sub.subject} (${sub.room}) $timeInfo"
+                } else {
+                    // Для подгрупп: "1. 1.Sub1(R) / 2.Sub2(R) Time"
+                    val subgroups = lesson.subgroups.mapIndexed { index, sub ->
+                        "${index + 1}.${sub.subject}(${sub.room})"
+                    }.joinToString(" / ")
+                    
+                    "${lesson.lessonNumber}. $subgroups $timeInfo"
+                }
             }
         }
         
@@ -72,7 +93,13 @@ class NotificationHelper(private val context: Context) {
             .build()
         
         with(NotificationManagerCompat.from(context)) {
-            notify(NOTIFICATION_ID, notification)
+            if (ActivityCompat.checkSelfPermission(
+                    context,
+                    Manifest.permission.POST_NOTIFICATIONS
+                ) == PackageManager.PERMISSION_GRANTED || Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU
+            ) {
+                notify(NOTIFICATION_ID, notification)
+            }
         }
     }
     

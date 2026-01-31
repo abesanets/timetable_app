@@ -42,21 +42,23 @@ class DailyNotificationManager(private val context: Context) {
         
         val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
         
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            if (!alarmManager.canScheduleExactAlarms()) {
+                Log.w(TAG, "Cannot schedule exact alarms, permission not granted")
+                return
+            }
+        }
+
+        try {
             alarmManager.setExactAndAllowWhileIdle(
                 AlarmManager.RTC_WAKEUP,
                 targetTime.timeInMillis,
                 pendingIntent
             )
-        } else {
-            alarmManager.setExact(
-                AlarmManager.RTC_WAKEUP,
-                targetTime.timeInMillis,
-                pendingIntent
-            )
+            Log.d(TAG, "Notification scheduled for: ${targetTime.time}")
+        } catch (e: SecurityException) {
+            Log.e(TAG, "Failed to schedule exact alarm: ${e.message}")
         }
-        
-        Log.d(TAG, "Notification scheduled for: ${targetTime.time}")
     }
     
     /**
@@ -141,20 +143,22 @@ class DailyNotificationManager(private val context: Context) {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
         
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            if (!alarmManager.canScheduleExactAlarms()) {
+                Log.w(TAG, "Cannot schedule exact alarms, permission not granted")
+                return
+            }
+        }
+
+        try {
             alarmManager.setExactAndAllowWhileIdle(
                 AlarmManager.RTC_WAKEUP,
                 tomorrow.timeInMillis,
                 pendingIntent
             )
-        } else {
-            alarmManager.setExact(
-                AlarmManager.RTC_WAKEUP,
-                tomorrow.timeInMillis,
-                pendingIntent
-            )
+            Log.d(TAG, "Scheduled for tomorrow at $DEFAULT_NOTIFICATION_HOUR:00")
+        } catch (e: SecurityException) {
+            Log.e(TAG, "Failed to schedule exact alarm: ${e.message}")
         }
-        
-        Log.d(TAG, "Scheduled for tomorrow at $DEFAULT_NOTIFICATION_HOUR:00")
     }
 }

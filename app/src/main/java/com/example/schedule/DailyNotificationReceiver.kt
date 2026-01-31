@@ -75,15 +75,27 @@ class DailyNotificationReceiver : BroadcastReceiver() {
     }
     
     private fun findTomorrowSchedule(schedule: Schedule): DaySchedule? {
-        val tomorrow = Calendar.getInstance().apply {
-            add(Calendar.DAY_OF_MONTH, 1)
-        }
         val dateFormat = SimpleDateFormat("dd.MM.yyyy", Locale("ru"))
-        val tomorrowString = dateFormat.format(tomorrow.time)
+        val today = Calendar.getInstance()
+        val todayString = dateFormat.format(today.time)
         
-        return schedule.days.find { day ->
-            day.dayDate.substringAfter(", ").trim() == tomorrowString
+        // Ищем расписание на ближайшие 7 дней, начиная с завтра
+        for (i in 1..7) {
+            val nextDay = Calendar.getInstance().apply {
+                add(Calendar.DAY_OF_MONTH, i)
+            }
+            val nextDayString = dateFormat.format(nextDay.time)
+            
+            val foundDay = schedule.days.find { day ->
+                day.dayDate.contains(nextDayString)
+            }
+            
+            if (foundDay != null && foundDay.lessons.isNotEmpty()) {
+                return foundDay
+            }
         }
+        
+        return null
     }
     
     private suspend fun rescheduleNotification(context: Context) {
