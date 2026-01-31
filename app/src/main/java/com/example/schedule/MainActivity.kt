@@ -11,6 +11,8 @@ import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -29,6 +31,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -563,7 +566,11 @@ fun CallsScreen() {
                 contentPadding = PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                items(schedule.size) { index ->
+                items(
+                    count = schedule.size,
+                    key = { index -> index },
+                    contentType = { "call" }
+                ) { index ->
                     CallItem(lessonNumber = index + 1, callTime = schedule[index])
                 }
             }
@@ -875,7 +882,7 @@ fun SettingsScreen() {
 
 @Composable
 fun ScheduleList(schedule: Schedule) {
-    val displayIndex = findTodayIndex(schedule.days)
+    val displayIndex = remember(schedule) { findTodayIndex(schedule.days) }
     
     val showingNext = remember(schedule, displayIndex) {
         val today = Calendar.getInstance()
@@ -890,12 +897,10 @@ fun ScheduleList(schedule: Schedule) {
         todayIndex >= 0 && displayIndex > todayIndex
     }
     
-    // Создаем новый listState при каждом изменении schedule
     val listState = rememberLazyListState(
         initialFirstVisibleItemIndex = if (displayIndex >= 0) displayIndex else 0
     )
     
-    // Принудительно скроллим к нужной позиции при изменении schedule
     LaunchedEffect(schedule) {
         if (displayIndex >= 0) {
             listState.scrollToItem(displayIndex, scrollOffset = 0)
@@ -908,21 +913,33 @@ fun ScheduleList(schedule: Schedule) {
         contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 16.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        items(schedule.days.size) { index ->
-            val day = schedule.days[index]
+        itemsIndexed(
+            items = schedule.days,
+            key = { _, day -> day.dayDate },
+            contentType = { _, _ -> "day" }
+        ) { index, day ->
             val isToday = index == displayIndex && !showingNext
             val isNext = index == displayIndex && showingNext
             
-            DayScheduleItem(day = day, isToday = isToday, isNext = isNext)
+            DayScheduleItem(
+                day = day, 
+                isToday = isToday, 
+                isNext = isNext,
+                modifier = Modifier.graphicsLayer()
+            )
         }
     }
 }
 
 @Composable
-fun DayScheduleItem(day: DaySchedule, isToday: Boolean = false, isNext: Boolean = false) {
+fun DayScheduleItem(
+    day: DaySchedule, 
+    isToday: Boolean = false, 
+    isNext: Boolean = false,
+    modifier: Modifier = Modifier
+) {
     Card(
-        modifier = Modifier
-            .fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.large,
         colors = CardDefaults.cardColors(
             containerColor = if (isToday || isNext)
@@ -1007,16 +1024,13 @@ fun DayScheduleItem(day: DaySchedule, isToday: Boolean = false, isNext: Boolean 
 
 @Composable
 fun LessonItem(lesson: Lesson, isHighlighted: Boolean = false) {
-    Card(
+    Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.medium,
-        colors = CardDefaults.cardColors(
-            containerColor = if (isHighlighted)
-                MaterialTheme.colorScheme.surfaceContainerHighest
-            else
-                MaterialTheme.colorScheme.surfaceContainer
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+        color = if (isHighlighted)
+            MaterialTheme.colorScheme.surfaceContainerHighest
+        else
+            MaterialTheme.colorScheme.surfaceContainer
     ) {
         Row(
             modifier = Modifier
