@@ -645,83 +645,22 @@ fun SettingsScreen() {
     val notificationsEnabled by preferencesManager.notificationsEnabled.collectAsState(initial = false)
     val scope = rememberCoroutineScope()
     
-    var showAlarmPermissionDialog by remember { mutableStateOf(false) }
     
     val requestPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) { isGranted: Boolean ->
         if (isGranted) {
             // После получения разрешения на уведомления, проверяем точные будильники
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as android.app.AlarmManager
-                if (!alarmManager.canScheduleExactAlarms()) {
-                    showAlarmPermissionDialog = true
-                } else {
-                    scope.launch {
-                        preferencesManager.setNotificationsEnabled(true)
-                    }
-                }
-            } else {
-                scope.launch {
-                    preferencesManager.setNotificationsEnabled(true)
-                }
+        if (isGranted) {
+            scope.launch {
+                preferencesManager.setNotificationsEnabled(true)
             }
+        }
         }
     }
     
     // Диалог для запроса разрешения на точные будильники
-    if (showAlarmPermissionDialog) {
-        AlertDialog(
-            onDismissRequest = { showAlarmPermissionDialog = false },
-            icon = {
-                Icon(
-                    imageVector = Icons.Outlined.Notifications,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary
-                )
-            },
-            title = {
-                Text(
-                    text = "Разрешение на точные уведомления",
-                    style = MaterialTheme.typography.titleLarge
-                )
-            },
-            text = {
-                Text(
-                    text = "Для отправки уведомлений в точное время (после окончания последней пары) необходимо разрешить приложению использовать точные будильники.",
-                    style = MaterialTheme.typography.bodyMedium
-                )
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        showAlarmPermissionDialog = false
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                            val intent = Intent(android.provider.Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM)
-                            context.startActivity(intent)
-                        }
-                        scope.launch {
-                            preferencesManager.setNotificationsEnabled(true)
-                        }
-                    }
-                ) {
-                    Text("Открыть настройки")
-                }
-            },
-            dismissButton = {
-                TextButton(
-                    onClick = {
-                        showAlarmPermissionDialog = false
-                        scope.launch {
-                            preferencesManager.setNotificationsEnabled(true)
-                        }
-                    }
-                ) {
-                    Text("Пропустить")
-                }
-            }
-        )
-    }
+
     
     Surface(
         modifier = Modifier.fillMaxSize(),

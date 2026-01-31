@@ -42,22 +42,18 @@ class DailyNotificationManager(private val context: Context) {
         
         val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
         
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            if (!alarmManager.canScheduleExactAlarms()) {
-                Log.w(TAG, "Cannot schedule exact alarms, permission not granted")
-                return
-            }
-        }
-
+        // Используем setAndAllowWhileIdle, который не требует разрешения SCHEDULE_EXACT_ALARM,
+        // но срабатывает даже в режиме энергосбережения (Doze).
+        // Время может быть немного неточным (система оптимизирует пробуждения), что не критично для расписания.
         try {
-            alarmManager.setExactAndAllowWhileIdle(
+            alarmManager.setAndAllowWhileIdle(
                 AlarmManager.RTC_WAKEUP,
                 targetTime.timeInMillis,
                 pendingIntent
             )
             Log.d(TAG, "Notification scheduled for: ${targetTime.time}")
-        } catch (e: SecurityException) {
-            Log.e(TAG, "Failed to schedule exact alarm: ${e.message}")
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to schedule alarm: ${e.message}")
         }
     }
     
@@ -143,22 +139,16 @@ class DailyNotificationManager(private val context: Context) {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
         
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            if (!alarmManager.canScheduleExactAlarms()) {
-                Log.w(TAG, "Cannot schedule exact alarms, permission not granted")
-                return
-            }
-        }
-
+        // Analogously use setAndAllowWhileIdle
         try {
-            alarmManager.setExactAndAllowWhileIdle(
+            alarmManager.setAndAllowWhileIdle(
                 AlarmManager.RTC_WAKEUP,
                 tomorrow.timeInMillis,
                 pendingIntent
             )
             Log.d(TAG, "Scheduled for tomorrow at $DEFAULT_NOTIFICATION_HOUR:00")
-        } catch (e: SecurityException) {
-            Log.e(TAG, "Failed to schedule exact alarm: ${e.message}")
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to schedule alarm: ${e.message}")
         }
     }
 }
