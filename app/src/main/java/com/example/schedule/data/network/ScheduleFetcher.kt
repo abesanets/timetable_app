@@ -1,4 +1,4 @@
-package com.example.schedule
+package com.example.schedule.data.network
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext

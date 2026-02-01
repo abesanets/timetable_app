@@ -1,6 +1,7 @@
-package com.example.schedule
+package com.example.schedule.data.network
 
 import android.util.Log
+import com.example.schedule.data.models.*
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Element
 

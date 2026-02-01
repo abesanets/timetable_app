@@ -1,13 +1,18 @@
-package com.example.schedule
+package com.example.schedule.features.widget.worker
 
 import android.content.Context
 import android.util.Log
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.glance.appwidget.state.updateAppWidgetState
-import androidx.glance.appwidget.updateAll
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
+import com.example.schedule.data.network.ScheduleFetcher
+import com.example.schedule.data.network.ScheduleParser
+import com.example.schedule.data.preferences.PreferencesManager
+import com.example.schedule.features.schedule.utils.ScheduleUtils
+import com.example.schedule.features.widget.ui.ScheduleWidget
+import com.example.schedule.features.widget.utils.WidgetUtils
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
@@ -35,9 +40,9 @@ class WidgetUpdateWorker(
             val schedule = parser.parse(html, group)
 
             // 2. Prepare display data
-            val displayIndex = findTodayIndex(schedule.days)
+            val displayIndex = ScheduleUtils.findTodayIndex(schedule.days)
             var dayLabel = ""
-            var daySchedule: DaySchedule? = null
+            var daySchedule: com.example.schedule.data.models.DaySchedule? = null
             
             if (displayIndex >= 0 && displayIndex < schedule.days.size) {
                  daySchedule = schedule.days[displayIndex]

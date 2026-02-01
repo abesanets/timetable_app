@@ -1,4 +1,4 @@
-package com.example.schedule
+package com.example.schedule.data.preferences
 
 import android.content.Context
 import androidx.datastore.core.DataStore

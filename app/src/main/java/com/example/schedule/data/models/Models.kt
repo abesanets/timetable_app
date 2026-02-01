@@ -1,4 +1,4 @@
-package com.example.schedule
+package com.example.schedule.data.models
 
 /**
  * Модель одной подгруппы в паре

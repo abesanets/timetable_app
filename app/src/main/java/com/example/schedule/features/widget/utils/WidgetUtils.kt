@@ -1,5 +1,8 @@
-package com.example.schedule
+package com.example.schedule.features.widget.utils
 
+import com.example.schedule.data.models.DaySchedule
+import com.example.schedule.data.models.Lesson
+import com.example.schedule.data.models.Subgroup
 import org.json.JSONArray
 import org.json.JSONObject
 

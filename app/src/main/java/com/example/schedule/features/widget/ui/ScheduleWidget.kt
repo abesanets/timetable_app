@@ -1,4 +1,4 @@
-package com.example.schedule
+package com.example.schedule.features.widget.ui
 
 import android.content.Context
 import androidx.compose.runtime.Composable
@@ -35,7 +35,16 @@ import androidx.glance.currentState
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
-import androidx.glance.appwidget.CircularProgressIndicator
+import com.example.schedule.data.models.DaySchedule
+import com.example.schedule.data.models.Lesson
+import com.example.schedule.data.network.ScheduleFetcher
+import com.example.schedule.data.network.ScheduleParser
+import com.example.schedule.data.preferences.PreferencesManager
+import com.example.schedule.features.schedule.utils.ScheduleUtils
+import com.example.schedule.features.widget.actions.RefreshWidgetAction
+import com.example.schedule.features.widget.utils.WidgetUtils
+import com.example.schedule.features.widget.worker.WidgetUpdateScheduler
+import com.example.schedule.ui.MainActivity
 
 class ScheduleWidget : GlanceAppWidget() {
     
@@ -423,7 +432,7 @@ suspend fun loadWidgetData(context: Context): WidgetData {
             parser.parse(html, savedGroup)
         }
         
-        val displayIndex = findTodayIndex(schedule.days)
+        val displayIndex = ScheduleUtils.findTodayIndex(schedule.days)
         
         if (displayIndex < 0 || displayIndex >= schedule.days.size) {
             return WidgetData(error = "Нет расписания")
@@ -471,5 +480,3 @@ class ScheduleWidgetReceiver : GlanceAppWidgetReceiver() {
         WidgetUpdateScheduler.cancelUpdate(context)
     }
 }
-
-

@@ -1,4 +1,4 @@
-package com.example.schedule
+package com.example.schedule.features.widget.worker
 
 import android.content.Context
 import androidx.work.Constraints

@@ -19,7 +19,7 @@
         android:requestLegacyExternalStorage="true">
         
         <activity
-            android:name=".MainActivity"
+            android:name=".ui.MainActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -29,7 +29,7 @@
         
         <!-- Receiver для перезапуска уведомлений после перезагрузки -->
         <receiver
-            android:name=".BootReceiver"
+            android:name=".system.BootReceiver"
             android:enabled="true"
             android:exported="true">
             <intent-filter>
@@ -40,13 +40,13 @@
         
         <!-- Receiver для ежедневных уведомлений о расписании -->
         <receiver
-            android:name=".DailyNotificationReceiver"
+            android:name=".features.notifications.receiver.DailyNotificationReceiver"
             android:enabled="true"
             android:exported="false" />
         
         <!-- Виджет расписания -->
         <receiver
-            android:name=".ScheduleWidgetReceiver"
+            android:name=".features.widget.ui.ScheduleWidgetReceiver"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />

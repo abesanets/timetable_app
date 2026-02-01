@@ -1,11 +1,14 @@
-package com.example.schedule
+package com.example.schedule.features.notifications.manager
 
 import android.app.AlarmManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
-import android.os.Build
 import android.util.Log
+import com.example.schedule.data.models.Schedule
+import com.example.schedule.data.models.WEEKDAY_SCHEDULE
+import com.example.schedule.data.models.SATURDAY_SCHEDULE
+import com.example.schedule.features.notifications.receiver.DailyNotificationReceiver
 import java.util.*
 
 /**

@@ -1,9 +1,14 @@
-package com.example.schedule
+package com.example.schedule.system
 
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.util.Log
+import com.example.schedule.data.network.ScheduleFetcher
+import com.example.schedule.data.network.ScheduleParser
+import com.example.schedule.data.preferences.PreferencesManager
+import com.example.schedule.features.notifications.manager.DailyNotificationManager
+import com.example.schedule.data.models.Schedule
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first

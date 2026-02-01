@@ -1,4 +1,4 @@
-package com.example.schedule
+package com.example.schedule.features.widget.actions
 
 import android.content.Context
 import androidx.glance.GlanceId
@@ -7,7 +7,9 @@ import androidx.glance.appwidget.action.ActionCallback
 import androidx.glance.appwidget.state.updateAppWidgetState
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
-import androidx.glance.appwidget.updateAll
+import com.example.schedule.features.widget.ui.ScheduleWidget
+import com.example.schedule.features.widget.ui.loadWidgetData
+import com.example.schedule.features.widget.utils.WidgetUtils
 
 class RefreshWidgetAction : ActionCallback {
     override suspend fun onAction(
