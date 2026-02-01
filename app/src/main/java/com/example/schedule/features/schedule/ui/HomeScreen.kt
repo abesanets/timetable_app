@@ -146,8 +146,8 @@ fun HomeScreen(
                         }
                         "content" -> {
                             schedule?.let { currentSchedule ->
-                                // Используем key чтобы полностью пересоздать ScheduleList при обновлении
-                                key(currentSchedule) {
+                                // Используем составной key для полного пересоздания ScheduleList при обновлении
+                                key("${currentSchedule.group}_${currentSchedule.days.size}_${currentSchedule.days.firstOrNull()?.dayDate}") {
                                     ScheduleList(schedule = currentSchedule)
                                 }
                             }

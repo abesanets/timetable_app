@@ -2,6 +2,7 @@ package com.example.schedule.features.schedule.ui.components
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.*
@@ -61,13 +62,20 @@ fun ScheduleList(schedule: Schedule) {
         false
     }
     
-    val listState = rememberLazyListState(
-        initialFirstVisibleItemIndex = if (displayIndex >= 0) displayIndex else 0
-    )
+    // Пересоздаем listState при изменении расписания или displayIndex
+    val listState = remember(schedule, displayIndex) {
+        LazyListState(
+            firstVisibleItemIndex = if (displayIndex >= 0) displayIndex else 0,
+            firstVisibleItemScrollOffset = 0
+        )
+    }
     
+    // Прокручиваем к активному дню при изменении расписания или индекса
     LaunchedEffect(schedule, displayIndex) {
         if (displayIndex >= 0) {
-            listState.scrollToItem(displayIndex, scrollOffset = 0)
+            // Добавляем небольшую задержку для корректной прокрутки
+            kotlinx.coroutines.delay(100)
+            listState.animateScrollToItem(displayIndex, scrollOffset = 0)
         }
     }
     
