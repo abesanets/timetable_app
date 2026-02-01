@@ -12,6 +12,7 @@
 
 
     <application
+        android:name=".ScheduleApplication"
         android:icon="@mipmap/ic_launcher"
         android:allowBackup="true"
         android:label="Расписание МГКЦТ"

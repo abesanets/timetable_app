@@ -29,6 +29,7 @@ import com.example.schedule.features.schedule.ui.HomeScreen
 import com.example.schedule.features.settings.ui.SettingsScreen
 import com.example.schedule.ui.navigation.Screen
 import com.example.schedule.ui.theme.MaterialYouTheme
+import com.yandex.mapkit.MapKitFactory
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -45,6 +46,16 @@ class MainActivity : ComponentActivity() {
                 ScheduleApp()
             }
         }
+    }
+
+    override fun onStart() {
+        super.onStart()
+        MapKitFactory.getInstance().onStart()
+    }
+
+    override fun onStop() {
+        MapKitFactory.getInstance().onStop()
+        super.onStop()
     }
 }
 
@@ -209,7 +220,10 @@ fun ScheduleApp() {
                 enterTransition = { fadeIn(tween(400, easing = FastOutSlowInEasing)) },
                 exitTransition = { fadeOut(tween(300, easing = FastOutSlowInEasing)) }
             ) {
-                BusesScreen()
+                BusesScreen(
+                    schedule = schedule,
+                    preferencesManager = preferencesManager
+                )
             }
             composable(
                 route = Screen.Alarms.route,

@@ -88,4 +88,29 @@ object ScheduleUtils {
         // Если ничего не найдено, возвращаем первый день с занятиями
         return days.indexOfFirst { it.lessons.isNotEmpty() }.takeIf { it >= 0 } ?: 0
     }
+
+    fun getClassesEndTime(days: List<DaySchedule>): Pair<Int, Int>? {
+        val today = Calendar.getInstance()
+        val dateFormat = SimpleDateFormat("dd.MM.yyyy", Locale("ru"))
+        val todayString = dateFormat.format(today.time)
+
+        val todaySchedule = days.find { day ->
+            val datePart = day.dayDate.substringAfter(", ").trim()
+            datePart == todayString
+        } ?: return null
+
+        if (todaySchedule.lessons.isEmpty()) return null
+
+        val isSaturday = today.get(Calendar.DAY_OF_WEEK) == Calendar.SATURDAY
+        val schedule = if (isSaturday) SATURDAY_SCHEDULE else WEEKDAY_SCHEDULE
+
+        val lastLesson = todaySchedule.lessons.maxByOrNull { it.lessonNumber.toIntOrNull() ?: 0 } ?: return null
+        val lastLessonNumber = lastLesson.lessonNumber.toIntOrNull() ?: return null
+
+        if (lastLessonNumber < 1 || lastLessonNumber > schedule.size) return null
+
+        val endTime = schedule[lastLessonNumber - 1].secondEnd
+        val endParts = endTime.split(":")
+        return Pair(endParts[0].toInt(), endParts[1].toInt())
+    }
 }

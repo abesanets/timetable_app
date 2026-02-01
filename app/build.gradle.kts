@@ -46,6 +46,7 @@ dependencies {
     implementation("androidx.compose.material3:material3:1.2.1")
     implementation("androidx.compose.ui:ui-tooling-preview:1.6.7")
     implementation("androidx.compose.animation:animation:1.6.7")
+    implementation("androidx.compose.material:material-icons-extended:1.6.7")
     
     // Navigation
     implementation("androidx.navigation:navigation-compose:2.7.7")
@@ -68,4 +69,7 @@ dependencies {
     // Glance для виджетов
     implementation("androidx.glance:glance-appwidget:1.1.0")
     implementation("androidx.glance:glance-material3:1.1.0")
+
+    // Yandex MapKit
+    implementation("com.yandex.android:maps.mobile:4.5.1-full")
 }
