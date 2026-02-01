@@ -6,10 +6,15 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -142,15 +147,96 @@ fun ScheduleApp() {
         }
     }
     
-    Scaffold(
-        containerColor = MaterialTheme.colorScheme.background,
-        bottomBar = {
-            NavigationBar(
-                containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                tonalElevation = 0.dp,
+    Box(modifier = Modifier.fillMaxSize()) {
+        Scaffold(
+            containerColor = MaterialTheme.colorScheme.background,
+        ) { paddingValues ->
+            NavHost(
+                navController = navController,
+                startDestination = Screen.Home.route,
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .navigationBarsPadding()
+                    .fillMaxSize()
+                    .padding(paddingValues)
+            ) {
+                composable(
+                    route = Screen.Home.route,
+                    enterTransition = { fadeIn(tween(400, easing = FastOutSlowInEasing)) },
+                    exitTransition = { fadeOut(tween(300, easing = FastOutSlowInEasing)) }
+                ) {
+                    HomeScreen(
+                        groupInput = groupInput,
+                        onGroupInputChange = { groupInput = it },
+                        schedule = schedule,
+                        errorMessage = errorMessage,
+                        isLoading = isLoading,
+                        loadSchedule = loadSchedule,
+                        loadedGroup = loadedGroup
+                    )
+                }
+                composable(
+                    route = Screen.Buses.route,
+                    enterTransition = { fadeIn(tween(400, easing = FastOutSlowInEasing)) },
+                    exitTransition = { fadeOut(tween(300, easing = FastOutSlowInEasing)) }
+                ) {
+                    BusesScreen(
+                        schedule = schedule,
+                        preferencesManager = preferencesManager
+                    )
+                }
+                composable(
+                    route = Screen.Alarms.route,
+                    enterTransition = { fadeIn(tween(400, easing = FastOutSlowInEasing)) },
+                    exitTransition = { fadeOut(tween(300, easing = FastOutSlowInEasing)) }
+                ) {
+                    AlarmsScreen()
+                }
+                composable(
+                    route = Screen.Settings.route,
+                    enterTransition = { fadeIn(tween(400, easing = FastOutSlowInEasing)) },
+                    exitTransition = { fadeOut(tween(300, easing = FastOutSlowInEasing)) }
+                ) {
+                    SettingsScreen()
+                }
+            }
+        }
+
+        // Gradient overlay for better dock legibility
+        Box(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .height(120.dp)
+                .background(
+                    androidx.compose.ui.graphics.Brush.verticalGradient(
+                        colors = listOf(
+                            Color.Transparent,
+                            MaterialTheme.colorScheme.background.copy(alpha = 0.7f),
+                            MaterialTheme.colorScheme.background
+                        )
+                    )
+                )
+        )
+
+        // Floating Dock Bar
+        Surface(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(horizontal = 16.dp)
+                .padding(bottom = 16.dp)
+                .navigationBarsPadding()
+                .height(64.dp) // Компактная высота для иконок
+                .wrapContentWidth(),
+            shape = MaterialTheme.shapes.extraLarge,
+            color = MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.98f),
+            tonalElevation = 6.dp,
+            shadowElevation = 8.dp
+        ) {
+            Row(
+                modifier = Modifier
+                    .padding(horizontal = 8.dp)
+                    .fillMaxHeight(),
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 val navBackStackEntry by navController.currentBackStackEntryAsState()
                 val currentDestination = navBackStackEntry?.destination
@@ -158,86 +244,34 @@ fun ScheduleApp() {
                 listOf(Screen.Home, Screen.Buses, Screen.Alarms, Screen.Settings).forEach { screen ->
                     val selected = currentDestination?.hierarchy?.any { it.route == screen.route } == true
                     
-                    NavigationBarItem(
-                        icon = {
-                            Icon(
-                                imageVector = if (selected) screen.iconSelected else screen.icon,
-                                contentDescription = screen.title,
-                                modifier = Modifier.size(24.dp)
+                    Box(
+                        modifier = Modifier
+                            .size(48.dp) // Квадратная область для симметрии
+                            .clip(MaterialTheme.shapes.extraLarge)
+                            .background(
+                                if (selected) MaterialTheme.colorScheme.secondaryContainer 
+                                else Color.Transparent
                             )
-                        },
-                        label = { 
-                            Text(
-                                screen.title,
-                                style = MaterialTheme.typography.labelMedium,
-                                fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal
-                            ) 
-                        },
-                        selected = selected,
-                        onClick = {
-                            navController.navigate(screen.route) {
-                                popUpTo(navController.graph.findStartDestination().id) {
-                                    saveState = true
+                            .clickable {
+                                navController.navigate(screen.route) {
+                                    popUpTo(navController.graph.findStartDestination().id) {
+                                        saveState = true
+                                    }
+                                    launchSingleTop = true
+                                    restoreState = true
                                 }
-                                launchSingleTop = true
-                                restoreState = true
-                            }
-                        },
-                        colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                            selectedTextColor = MaterialTheme.colorScheme.onSurface,
-                            indicatorColor = MaterialTheme.colorScheme.secondaryContainer,
-                            unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                            unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
+                            },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = if (selected) screen.iconSelected else screen.icon,
+                            contentDescription = screen.title,
+                            modifier = Modifier.size(26.dp), // Чуть крупнее иконки, раз нет текста
+                            tint = if (selected) MaterialTheme.colorScheme.onSecondaryContainer 
+                                   else MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                    )
+                    }
                 }
-            }
-        }
-    ) { paddingValues ->
-        NavHost(
-            navController = navController,
-            startDestination = Screen.Home.route,
-            modifier = Modifier.padding(paddingValues)
-        ) {
-            composable(
-                route = Screen.Home.route,
-                enterTransition = { fadeIn(tween(400, easing = FastOutSlowInEasing)) },
-                exitTransition = { fadeOut(tween(300, easing = FastOutSlowInEasing)) }
-            ) {
-                HomeScreen(
-                    groupInput = groupInput,
-                    onGroupInputChange = { groupInput = it },
-                    schedule = schedule,
-                    errorMessage = errorMessage,
-                    isLoading = isLoading,
-                    loadSchedule = loadSchedule,
-                    loadedGroup = loadedGroup
-                )
-            }
-            composable(
-                route = Screen.Buses.route,
-                enterTransition = { fadeIn(tween(400, easing = FastOutSlowInEasing)) },
-                exitTransition = { fadeOut(tween(300, easing = FastOutSlowInEasing)) }
-            ) {
-                BusesScreen(
-                    schedule = schedule,
-                    preferencesManager = preferencesManager
-                )
-            }
-            composable(
-                route = Screen.Alarms.route,
-                enterTransition = { fadeIn(tween(400, easing = FastOutSlowInEasing)) },
-                exitTransition = { fadeOut(tween(300, easing = FastOutSlowInEasing)) }
-            ) {
-                AlarmsScreen()
-            }
-            composable(
-                route = Screen.Settings.route,
-                enterTransition = { fadeIn(tween(400, easing = FastOutSlowInEasing)) },
-                exitTransition = { fadeOut(tween(300, easing = FastOutSlowInEasing)) }
-            ) {
-                SettingsScreen()
             }
         }
     }

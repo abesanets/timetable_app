@@ -22,6 +22,9 @@ import com.example.schedule.features.widget.ui.ScheduleWidgetReceiver
 import com.example.schedule.features.widget.worker.WidgetUpdateScheduler
 import kotlinx.coroutines.launch
 
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen() {
@@ -64,16 +67,15 @@ fun SettingsScreen() {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(16.dp),
+                    .verticalScroll(rememberScrollState())
+                    .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 100.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 // Уведомления
-                Card(
+                Surface(
                     modifier = Modifier.fillMaxWidth(),
                     shape = MaterialTheme.shapes.large,
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
-                    )
+                    color = MaterialTheme.colorScheme.surfaceContainer
                 ) {
                     Row(
                         modifier = Modifier
@@ -99,13 +101,13 @@ fun SettingsScreen() {
                                     }
                                 }
                             }
-                            .padding(16.dp),
+                            .padding(horizontal = 16.dp, vertical = 10.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Column(
                             modifier = Modifier.weight(1f),
-                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                            verticalArrangement = Arrangement.spacedBy(2.dp)
                         ) {
                             Text(
                                 text = "Уведомления",
@@ -114,8 +116,8 @@ fun SettingsScreen() {
                                 color = MaterialTheme.colorScheme.onSurface
                             )
                             Text(
-                                text = "Получать расписание на следующий день",
-                                style = MaterialTheme.typography.bodyMedium,
+                                text = "Расписание на завтра",
+                                style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
@@ -144,12 +146,10 @@ fun SettingsScreen() {
                 }
                 
                 // Виджет
-                Card(
+                Surface(
                     modifier = Modifier.fillMaxWidth(),
                     shape = MaterialTheme.shapes.large,
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
-                    )
+                    color = MaterialTheme.colorScheme.surfaceContainer
                 ) {
                     Row(
                         modifier = Modifier
@@ -164,13 +164,13 @@ fun SettingsScreen() {
                                     }
                                 }
                             }
-                            .padding(16.dp),
+                            .padding(horizontal = 16.dp, vertical = 14.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Column(
                             modifier = Modifier.weight(1f),
-                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                            verticalArrangement = Arrangement.spacedBy(2.dp)
                         ) {
                             Text(
                                 text = "Виджет на рабочий стол",
@@ -180,7 +180,7 @@ fun SettingsScreen() {
                             )
                             Text(
                                 text = "Нажмите, чтобы добавить",
-                                style = MaterialTheme.typography.bodyMedium,
+                                style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
@@ -188,7 +188,7 @@ fun SettingsScreen() {
                         Icon(
                             imageVector = Icons.Outlined.Add,
                             contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary
+                            tint = MaterialTheme.colorScheme.secondary
                         )
                     }
                 }
@@ -202,12 +202,10 @@ fun SettingsScreen() {
                 
                 var showIntervalDialog by remember { mutableStateOf(false) }
                 
-                Card(
+                Surface(
                     modifier = Modifier.fillMaxWidth(),
                     shape = MaterialTheme.shapes.large,
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
-                    )
+                    color = MaterialTheme.colorScheme.surfaceContainer
                 ) {
                     Row(
                         modifier = Modifier
@@ -215,16 +213,16 @@ fun SettingsScreen() {
                             .clickable(enabled = hasWidget) {
                                 showIntervalDialog = true
                             }
-                            .padding(16.dp),
+                            .padding(horizontal = 16.dp, vertical = 14.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Column(
                             modifier = Modifier.weight(1f),
-                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                            verticalArrangement = Arrangement.spacedBy(2.dp)
                         ) {
                             Text(
-                                text = "Частота обновления виджета",
+                                text = "Обновление виджета",
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.SemiBold,
                                 color = if (hasWidget) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
@@ -239,7 +237,7 @@ fun SettingsScreen() {
                                     360L -> "Каждые 6 часов"
                                     else -> "$widgetUpdateInterval мин"
                                 },
-                                style = MaterialTheme.typography.bodyMedium,
+                                style = MaterialTheme.typography.bodySmall,
                                 color = if (hasWidget) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.38f)
                             )
                         }

@@ -3,6 +3,7 @@ package com.example.schedule.features.buses.ui
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -136,16 +137,21 @@ fun BusesScreen(
             )
             
             Column(
-                modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(24.dp)
+                modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 100.dp),
+                verticalArrangement = Arrangement.spacedBy(20.dp)
             ) {
                 OutlinedTextField(
                     value = homeAddress,
                     onValueChange = { saveAddress(it) },
                     label = { Text("Домашний адрес") },
-                    leadingIcon = { Icon(Icons.Default.Home, contentDescription = null) },
+                    leadingIcon = { Icon(Icons.Default.Home, contentDescription = null, tint = MaterialTheme.colorScheme.secondary) },
                     modifier = Modifier.fillMaxWidth(),
-                    shape = MaterialTheme.shapes.medium
+                    shape = MaterialTheme.shapes.extraLarge,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                        unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant
+                    )
                 )
 
                 ExposedDropdownMenuBox(
@@ -158,10 +164,15 @@ fun BusesScreen(
                         onValueChange = {},
                         readOnly = true,
                         label = { Text("Откуда") },
-                        leadingIcon = { Icon(Icons.Default.LocationOn, contentDescription = null) },
-                        trailingIcon = { Icon(Icons.Default.ArrowDropDown, contentDescription = null) },
+                        leadingIcon = { Icon(Icons.Default.LocationOn, contentDescription = null, tint = MaterialTheme.colorScheme.secondary) },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = isDropdownExpanded) },
                         modifier = Modifier.fillMaxWidth().menuAnchor(),
-                        shape = MaterialTheme.shapes.medium
+                        shape = MaterialTheme.shapes.extraLarge,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                            unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant
+                        )
                     )
                     ExposedDropdownMenu(expanded = isDropdownExpanded, onDismissRequest = { isDropdownExpanded = false }) {
                         locationOptions.forEach { option ->
@@ -177,62 +188,119 @@ fun BusesScreen(
                         readOnly = true,
                         enabled = false,
                         label = { Text("Время отправления") },
-                        leadingIcon = { Icon(Icons.Default.Notifications, contentDescription = null) },
+                        leadingIcon = { Icon(Icons.Default.Notifications, contentDescription = null, tint = MaterialTheme.colorScheme.secondary) },
                         modifier = Modifier.fillMaxWidth(),
                         colors = OutlinedTextFieldDefaults.colors(
                             disabledTextColor = MaterialTheme.colorScheme.onSurface,
-                            disabledBorderColor = MaterialTheme.colorScheme.outline,
-                            disabledLeadingIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                            disabledBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                            disabledLeadingIconColor = MaterialTheme.colorScheme.secondary,
                             disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                            disabledContainerColor = MaterialTheme.colorScheme.surface
+                            disabledContainerColor = MaterialTheme.colorScheme.surfaceContainerLow
                         ),
-                        shape = MaterialTheme.shapes.medium
+                        shape = MaterialTheme.shapes.extraLarge
                     )
                     Box(modifier = Modifier.matchParentSize().clickable { showTimePicker = true })
                 }
                 
-                Button(onClick = { searchRoutes() }, modifier = Modifier.fillMaxWidth().height(50.dp), shape = MaterialTheme.shapes.large) {
-                    if (isLoading) CircularProgressIndicator(color = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
-                    else Text("Найти маршрут")
+                FilledTonalButton(
+                    onClick = { searchRoutes() }, 
+                    modifier = Modifier.fillMaxWidth().height(56.dp), 
+                    shape = MaterialTheme.shapes.extraLarge
+                ) {
+                    if (isLoading) {
+                        CircularProgressIndicator(
+                            color = MaterialTheme.colorScheme.onSecondaryContainer, 
+                            modifier = Modifier.size(24.dp), 
+                            strokeWidth = 3.dp
+                        )
+                    } else {
+                        Icon(Icons.Default.Search, contentDescription = null)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Найти маршрут")
+                    }
                 }
                 
                 if (errorMessage != null) {
-                    Text(text = errorMessage!!, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium)
+                    Text(
+                        text = errorMessage!!, 
+                        color = MaterialTheme.colorScheme.error, 
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.padding(horizontal = 8.dp)
+                    )
                 }
                 
                 if (routes.isNotEmpty()) {
-                    Text("Маршруты:", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    Text(
+                        "Маршруты:", 
+                        style = MaterialTheme.typography.titleMedium, 
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(horizontal = 4.dp)
+                    )
                     routes.forEach { route ->
-                        Card(
+                        Surface(
                             modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-                            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                            shape = MaterialTheme.shapes.large,
+                            color = MaterialTheme.colorScheme.surfaceContainer
                         ) {
-                            Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
-                                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                                    Column {
-                                        Text("${route.departureTime} - ${route.arrivalTime}", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                                        Text(text = if (route.transfers > 0) "Пересадки: ${route.transfers}" else "Без пересадок", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.secondary)
+                            Column(modifier = Modifier.fillMaxWidth().padding(12.dp)) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(), 
+                                    horizontalArrangement = Arrangement.SpaceBetween, 
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            "${route.departureTime} — ${route.arrivalTime}", 
+                                            style = MaterialTheme.typography.titleMedium, 
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.onSurface
+                                        )
+                                        Text(
+                                            text = if (route.transfers > 0) "Пересадки: ${route.transfers}" else "Без пересадок", 
+                                            style = MaterialTheme.typography.labelSmall, 
+                                            color = MaterialTheme.colorScheme.secondary
+                                        )
                                     }
-                                    Surface(color = MaterialTheme.colorScheme.primaryContainer, shape = MaterialTheme.shapes.small) {
-                                        Text(route.duration, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp))
+                                    Surface(
+                                        color = MaterialTheme.colorScheme.secondaryContainer, 
+                                        shape = CircleShape
+                                    ) {
+                                        Text(
+                                            text = route.duration, 
+                                            style = MaterialTheme.typography.labelMedium, 
+                                            fontWeight = FontWeight.Bold, 
+                                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp), 
+                                            color = MaterialTheme.colorScheme.onSecondaryContainer
+                                        )
                                     }
                                 }
-                                Spacer(modifier = Modifier.height(12.dp))
-                                Divider(color = MaterialTheme.colorScheme.surfaceVariant)
-                                Spacer(modifier = Modifier.height(12.dp))
                                 
+                                Spacer(modifier = Modifier.height(10.dp))
+                                
+                                // Шаги маршрута в чистом виде
                                 val steps = route.description.split("\n↓\n")
-                                steps.forEach { step ->
-                                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(vertical = 4.dp)) {
-                                        Icon(
-                                            imageVector = if (step.startsWith("Пешком")) Icons.Default.DirectionsWalk else Icons.Default.DirectionsBus,
-                                            contentDescription = null,
-                                            tint = MaterialTheme.colorScheme.primary,
-                                            modifier = Modifier.size(20.dp)
-                                        )
-                                        Spacer(modifier = Modifier.width(12.dp))
-                                        Text(step, style = MaterialTheme.typography.bodyMedium)
+                                Column(
+                                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    steps.forEach { step ->
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically, 
+                                            modifier = Modifier.padding(horizontal = 4.dp)
+                                        ) {
+                                            Icon(
+                                                imageVector = if (step.startsWith("Пешком")) Icons.Default.DirectionsWalk else Icons.Default.DirectionsBus,
+                                                contentDescription = null,
+                                                tint = MaterialTheme.colorScheme.secondary,
+                                                modifier = Modifier.size(16.dp)
+                                            )
+                                            Spacer(modifier = Modifier.width(12.dp))
+                                            Text(
+                                                text = step, 
+                                                style = MaterialTheme.typography.bodySmall, 
+                                                color = MaterialTheme.colorScheme.onSurface,
+                                                modifier = Modifier.padding(vertical = 2.dp)
+                                            )
+                                        }
                                     }
                                 }
                             }

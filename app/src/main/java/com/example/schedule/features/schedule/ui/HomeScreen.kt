@@ -52,46 +52,57 @@ fun HomeScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .background(MaterialTheme.colorScheme.surface)
-                    .padding(horizontal = 16.dp, vertical = 8.dp)
+                    .padding(horizontal = 16.dp, vertical = 12.dp)
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     OutlinedTextField(
                         value = groupInput,
                         onValueChange = onGroupInputChange,
-                        placeholder = { Text("Номер группы") },
+                        placeholder = { 
+                            Text(
+                                "Номер группы",
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                            ) 
+                        },
                         modifier = Modifier.weight(1f),
                         enabled = !isLoading,
                         singleLine = true,
-                        shape = MaterialTheme.shapes.large,
+                        shape = MaterialTheme.shapes.extraLarge,
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = MaterialTheme.colorScheme.primary,
-                            unfocusedBorderColor = MaterialTheme.colorScheme.outline
+                            focusedBorderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
+                            unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                            focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow
                         )
                     )
                     
                     FilledIconButton(
                         onClick = loadSchedule,
                         enabled = !isLoading && groupInput.isNotBlank(),
-                        modifier = Modifier.size(52.dp),
+                        modifier = Modifier.size(56.dp),
                         colors = IconButtonDefaults.filledIconButtonColors(
-                            containerColor = MaterialTheme.colorScheme.primaryContainer,
-                            contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                            containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                            contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                            disabledContainerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                            disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.38f)
                         )
                     ) {
                         if (isLoading) {
                             CircularProgressIndicator(
-                                modifier = Modifier.size(22.dp),
-                                strokeWidth = 2.dp
+                                modifier = Modifier.size(24.dp),
+                                strokeWidth = 3.dp,
+                                color = MaterialTheme.colorScheme.onSecondaryContainer
                             )
                         } else {
                             Icon(
                                 imageVector = if (groupInput != loadedGroup) Icons.Default.Search else Icons.Default.Refresh,
                                 contentDescription = null,
-                                modifier = Modifier.size(22.dp)
+                                modifier = Modifier.size(24.dp)
                             )
                         }
                     }

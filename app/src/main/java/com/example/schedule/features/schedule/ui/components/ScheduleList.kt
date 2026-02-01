@@ -82,7 +82,7 @@ fun ScheduleList(schedule: Schedule) {
     LazyColumn(
         state = listState,
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 16.dp),
+        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 100.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         itemsIndexed(

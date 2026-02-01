@@ -21,7 +21,7 @@
             android:text="Понедельник, 30.01"
             android:textSize="14sp"
             android:textStyle="bold"
-            android:textColor="#E6E1E5" />
+            android:textColor="#E2E2E6" />
 
         <TextView
             android:layout_width="wrap_content"
@@ -29,7 +29,7 @@
             android:text="Обновить"
             android:textSize="11sp"
             android:textStyle="bold"
-            android:textColor="#D0BCFF"
+            android:textColor="#D7E3F7"
             android:background="@drawable/preview_button_bg"
             android:paddingHorizontal="10dp"
             android:paddingVertical="5dp" />
@@ -50,7 +50,7 @@
             android:text="1"
             android:textSize="16sp"
             android:textStyle="bold"
-            android:textColor="#381E72"
+            android:textColor="#253140"
             android:background="@drawable/preview_number_bg"
             android:gravity="center" />
 
@@ -67,7 +67,7 @@
                 android:text="Математический анализ"
                 android:textSize="13sp"
                 android:textStyle="bold"
-                android:textColor="#E6E1E5"
+                android:textColor="#E2E2E6"
                 android:maxLines="2"
                 android:ellipsize="end" />
 
@@ -77,7 +77,7 @@
                 android:text="• 301"
                 android:textSize="12sp"
                 android:textStyle="bold"
-                android:textColor="#D0BCFF"
+                android:textColor="#BBC7DB"
                 android:layout_marginTop="4dp" />
         </LinearLayout>
     </LinearLayout>
@@ -96,7 +96,7 @@
             android:text="2"
             android:textSize="16sp"
             android:textStyle="bold"
-            android:textColor="#381E72"
+            android:textColor="#253140"
             android:background="@drawable/preview_number_bg"
             android:gravity="center" />
 
@@ -113,7 +113,7 @@
                 android:text="Физика"
                 android:textSize="13sp"
                 android:textStyle="bold"
-                android:textColor="#E6E1E5"
+                android:textColor="#E2E2E6"
                 android:maxLines="2"
                 android:ellipsize="end" />
 
@@ -123,7 +123,7 @@
                 android:text="• 205"
                 android:textSize="12sp"
                 android:textStyle="bold"
-                android:textColor="#D0BCFF"
+                android:textColor="#BBC7DB"
                 android:layout_marginTop="4dp" />
         </LinearLayout>
     </LinearLayout>
