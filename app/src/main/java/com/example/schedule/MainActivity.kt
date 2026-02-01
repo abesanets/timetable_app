@@ -921,26 +921,57 @@ fun SettingsScreen() {
 
 @Composable
 fun ScheduleList(schedule: Schedule) {
-    val displayIndex = remember(schedule) { findTodayIndex(schedule.days) }
+    // Добавляем состояние для принудительного обновления каждую минуту
+    var refreshTrigger by remember { mutableStateOf(0) }
     
-    val showingNext = remember(schedule, displayIndex) {
+    // Обновляем каждую минуту для корректного отображения активного дня
+    LaunchedEffect(Unit) {
+        while (true) {
+            kotlinx.coroutines.delay(60000) // 60 секунд
+            refreshTrigger++
+        }
+    }
+    
+    val displayIndex = remember(schedule, refreshTrigger) { findTodayIndex(schedule.days) }
+    
+    val showingNext = remember(schedule, displayIndex, refreshTrigger) {
         val today = Calendar.getInstance()
         val dateFormat = SimpleDateFormat("dd.MM.yyyy", Locale("ru"))
         val todayString = dateFormat.format(today.time)
         
+        // Проверяем, есть ли сегодняшний день в расписании
         val todayIndex = schedule.days.indexOfFirst { day ->
             val datePart = day.dayDate.substringAfter(", ").trim()
             datePart == todayString
         }
         
-        todayIndex >= 0 && displayIndex > todayIndex
+        // Если сегодняшний день найден в расписании и displayIndex указывает на другой день
+        if (todayIndex >= 0 && displayIndex > todayIndex) {
+            return@remember true
+        }
+        
+        // Если сегодняшний день НЕ найден в расписании (например, воскресенье)
+        // то выделенный день должен показываться как "следующий"
+        if (todayIndex < 0 && displayIndex >= 0) {
+            val displayDayDateStr = schedule.days[displayIndex].dayDate.substringAfter(", ").trim()
+            try {
+                val displayDate = dateFormat.parse(displayDayDateStr)
+                val currentDate = today.time
+                // Если выделенный день в будущем, показываем как "следующий"
+                return@remember displayDate != null && displayDate > currentDate
+            } catch (e: Exception) {
+                return@remember false
+            }
+        }
+        
+        false
     }
     
     val listState = rememberLazyListState(
         initialFirstVisibleItemIndex = if (displayIndex >= 0) displayIndex else 0
     )
     
-    LaunchedEffect(schedule) {
+    LaunchedEffect(schedule, displayIndex) {
         if (displayIndex >= 0) {
             listState.scrollToItem(displayIndex, scrollOffset = 0)
         }
@@ -957,7 +988,14 @@ fun ScheduleList(schedule: Schedule) {
             key = { _, day -> day.dayDate },
             contentType = { _, _ -> "day" }
         ) { index, day ->
-            val isToday = index == displayIndex && !showingNext
+            // Определяем, является ли этот день сегодняшним
+            val today = Calendar.getInstance()
+            val dateFormat = SimpleDateFormat("dd.MM.yyyy", Locale("ru"))
+            val todayString = dateFormat.format(today.time)
+            val dayDateStr = day.dayDate.substringAfter(", ").trim()
+            val isDayToday = dayDateStr == todayString
+            
+            val isToday = index == displayIndex && isDayToday && !showingNext
             val isNext = index == displayIndex && showingNext
             
             DayScheduleItem(
@@ -1209,17 +1247,57 @@ fun findTodayIndex(days: List<DaySchedule>): Int {
     val dateFormat = SimpleDateFormat("dd.MM.yyyy", Locale("ru"))
     val todayString = dateFormat.format(today.time)
     
+    // Сначала ищем сегодняшний день в расписании
     val todayIndex = days.indexOfFirst { day ->
         val datePart = day.dayDate.substringAfter(", ").trim()
         datePart == todayString
     }
     
+    // Если нашли сегодняшний день в расписании
     if (todayIndex >= 0) {
         val todaySchedule = days[todayIndex]
+        // Если занятия на сегодня закончились, ищем следующий учебный день
         if (areClassesFinishedForToday(todaySchedule)) {
-            return if (todayIndex + 1 < days.size) todayIndex + 1 else todayIndex
+            // Ищем следующий день с занятиями, начиная с завтрашнего дня
+            for (i in (todayIndex + 1) until days.size) {
+                if (days[i].lessons.isNotEmpty()) {
+                    return i
+                }
+            }
+            // Если не нашли следующий день с занятиями, возвращаем сегодняшний
+            return todayIndex
+        }
+        return todayIndex
+    }
+    
+    // Если сегодняшний день НЕ найден в расписании (например, воскресенье)
+    // Ищем ближайший будущий учебный день
+    val currentDate = today.time
+    
+    // Ищем ближайший день в будущем с занятиями
+    var nearestFutureIndex = -1
+    var nearestFutureDate: Date? = null
+    
+    for (i in days.indices) {
+        val dayDateStr = days[i].dayDate.substringAfter(", ").trim()
+        try {
+            val dayDate = dateFormat.parse(dayDateStr)
+            if (dayDate != null && dayDate > currentDate && days[i].lessons.isNotEmpty()) {
+                if (nearestFutureDate == null || dayDate < nearestFutureDate) {
+                    nearestFutureDate = dayDate
+                    nearestFutureIndex = i
+                }
+            }
+        } catch (e: Exception) {
+            // Игнорируем ошибки парсинга даты
         }
     }
     
-    return todayIndex
+    // Если нашли ближайший будущий день, возвращаем его
+    if (nearestFutureIndex >= 0) {
+        return nearestFutureIndex
+    }
+    
+    // Если ничего не найдено, возвращаем первый день с занятиями
+    return days.indexOfFirst { it.lessons.isNotEmpty() }.takeIf { it >= 0 } ?: 0
 }
