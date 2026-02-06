@@ -16,73 +16,53 @@ import java.util.*
 
 @Composable
 fun ScheduleList(schedule: Schedule) {
-    // Добавляем состояние для принудительного обновления каждую минуту
+    // Состояние для принудительного обновления каждую минуту
     var refreshTrigger by remember { mutableStateOf(0) }
     
     // Обновляем каждую минуту для корректного отображения активного дня
     LaunchedEffect(Unit) {
         while (true) {
-            kotlinx.coroutines.delay(60000) // 60 секунд
+            kotlinx.coroutines.delay(60000)
             refreshTrigger++
         }
     }
     
-    val displayIndex = remember(schedule, refreshTrigger) { ScheduleUtils.findTodayIndex(schedule.days) }
+    // Вычисляем индекс активного дня
+    val displayIndex = remember(schedule, refreshTrigger) { 
+        ScheduleUtils.findTodayIndex(schedule.days) 
+    }
     
+    // Вычисляем, показываем ли мы "следующий" день
     val showingNext = remember(schedule, displayIndex, refreshTrigger) {
-        val today = Calendar.getInstance()
-        val dateFormat = SimpleDateFormat("dd.MM.yyyy", Locale("ru"))
-        val todayString = dateFormat.format(today.time)
-        
-        // Проверяем, есть ли сегодняшний день в расписании
-        val todayIndex = schedule.days.indexOfFirst { day ->
-            val datePart = day.dayDate.substringAfter(", ").trim()
-            datePart == todayString
-        }
-        
-        // Если сегодняшний день найден в расписании и displayIndex указывает на другой день
-        if (todayIndex >= 0 && displayIndex > todayIndex) {
-            return@remember true
-        }
-        
-        // Если сегодняшний день НЕ найден в расписании (например, воскресенье)
-        // то выделенный день должен показываться как "следующий"
-        if (todayIndex < 0 && displayIndex >= 0) {
-            val displayDayDateStr = schedule.days[displayIndex].dayDate.substringAfter(", ").trim()
-            try {
-                val displayDate = dateFormat.parse(displayDayDateStr)
-                val currentDate = today.time
-                // Если выделенный день в будущем, показываем как "следующий"
-                return@remember displayDate != null && displayDate > currentDate
-            } catch (e: Exception) {
-                return@remember false
-            }
-        }
-        
-        false
+        ScheduleUtils.isShowingNextDay(schedule.days, displayIndex)
     }
     
-    // Пересоздаем listState при изменении расписания или displayIndex
-    val listState = remember(schedule, displayIndex) {
-        LazyListState(
-            firstVisibleItemIndex = if (displayIndex >= 0) displayIndex else 0,
-            firstVisibleItemScrollOffset = 0
-        )
-    }
+    // Используем стандартный rememberLazyListState, чтобы не терять состояние при рекомпозиции
+    val listState = rememberLazyListState()
     
-    // Прокручиваем к активному дню при изменении расписания или индекса
+    // Флаг для первоначальной прокрутки
+    var hasInitialScrolled by remember(schedule.group) { mutableStateOf(false) }
+    
+    // Прокрутка к активному дню
     LaunchedEffect(schedule, displayIndex) {
-        if (displayIndex >= 0) {
-            // Добавляем небольшую задержку для корректной прокрутки
-            kotlinx.coroutines.delay(100)
-            listState.animateScrollToItem(displayIndex, scrollOffset = 0)
+        if (displayIndex >= 0 && displayIndex < schedule.days.size) {
+            // Если это первая загрузка для этой группы или индекс изменился существенно
+            if (!hasInitialScrolled || listState.firstVisibleItemIndex == 0) {
+                // Даем время на отрисовку списка
+                kotlinx.coroutines.delay(50)
+                listState.scrollToItem(displayIndex)
+                hasInitialScrolled = true
+            } else {
+                // Если индекс изменился (например, наступил следующий день), плавно прокручиваем
+                listState.animateScrollToItem(displayIndex)
+            }
         }
     }
     
     LazyColumn(
         state = listState,
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 100.dp),
+        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 24.dp, bottom = 100.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         itemsIndexed(
@@ -90,11 +70,15 @@ fun ScheduleList(schedule: Schedule) {
             key = { _, day -> day.dayDate },
             contentType = { _, _ -> "day" }
         ) { index, day ->
-            // Определяем, является ли этот день сегодняшним
+            // Определяем, является ли этот день сегодняшним для подсветки
             val today = Calendar.getInstance()
             val dateFormat = SimpleDateFormat("dd.MM.yyyy", Locale("ru"))
             val todayString = dateFormat.format(today.time)
-            val dayDateStr = day.dayDate.substringAfter(", ").trim()
+            
+            // Извлекаем чистую дату для сравнения
+            val dateRegex = Regex("""\d{2}\.\d{2}\.\d{4}""")
+            val dayDateStr = dateRegex.find(day.dayDate)?.value ?: day.dayDate.substringAfter(",").trim()
+            
             val isDayToday = dayDateStr == todayString
             
             val isToday = index == displayIndex && isDayToday && !showingNext

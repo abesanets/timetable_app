@@ -16,6 +16,7 @@ class PreferencesManager(private val context: Context) {
     
     companion object {
         private val LAST_GROUP_KEY = stringPreferencesKey("last_group")
+        private val SELECTED_SUBGROUP_KEY = androidx.datastore.preferences.core.intPreferencesKey("selected_subgroup")
         private val NOTIFICATIONS_ENABLED_KEY = booleanPreferencesKey("notifications_enabled")
         private val WIDGET_UPDATE_INTERVAL_KEY = androidx.datastore.preferences.core.longPreferencesKey("widget_update_interval")
         private val HOME_ADDRESS_KEY = stringPreferencesKey("home_address")
@@ -25,6 +26,11 @@ class PreferencesManager(private val context: Context) {
     val lastGroup: Flow<String?> = context.dataStore.data
         .map { preferences ->
             preferences[LAST_GROUP_KEY]
+        }
+
+    val selectedSubgroup: Flow<Int> = context.dataStore.data
+        .map { preferences ->
+            preferences[SELECTED_SUBGROUP_KEY] ?: 0 // 0 means all subgroups
         }
     
     val notificationsEnabled: Flow<Boolean> = context.dataStore.data
@@ -53,6 +59,12 @@ class PreferencesManager(private val context: Context) {
     suspend fun saveLastGroup(group: String) {
         context.dataStore.edit { preferences ->
             preferences[LAST_GROUP_KEY] = group
+        }
+    }
+
+    suspend fun setSelectedSubgroup(subgroup: Int) {
+        context.dataStore.edit { preferences ->
+            preferences[SELECTED_SUBGROUP_KEY] = subgroup
         }
     }
     

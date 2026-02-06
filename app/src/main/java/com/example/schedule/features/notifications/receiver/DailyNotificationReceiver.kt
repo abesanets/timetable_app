@@ -52,12 +52,18 @@ class DailyNotificationReceiver : BroadcastReceiver() {
         // Получаем группу
         val group = preferencesManager.lastGroup.first()
         if (group.isNullOrBlank()) return
+
+        // Получаем подгруппу
+        val selectedSubgroup = preferencesManager.selectedSubgroup.first()
         
         // Загружаем расписание
         val schedule = fetchSchedule(context, group) ?: return
         
+        // Фильтруем по подгруппе
+        val filteredSchedule = com.example.schedule.features.schedule.utils.ScheduleUtils.filterScheduleBySubgroup(schedule, selectedSubgroup)
+        
         // Находим расписание на завтра
-        val tomorrowSchedule = findTomorrowSchedule(schedule) ?: return
+        val tomorrowSchedule = findTomorrowSchedule(filteredSchedule) ?: return
         
         // Отправляем уведомление
         NotificationHelper(context).sendScheduleNotification(tomorrowSchedule)
@@ -109,12 +115,16 @@ class DailyNotificationReceiver : BroadcastReceiver() {
         try {
             val preferencesManager = PreferencesManager(context)
             val group = preferencesManager.lastGroup.first()
+            val selectedSubgroup = preferencesManager.selectedSubgroup.first()
             
             if (group.isNullOrBlank()) return
             
             val schedule = fetchSchedule(context, group)
             
-            DailyNotificationManager(context).scheduleNotification(schedule)
+            if (schedule != null) {
+                val filteredSchedule = com.example.schedule.features.schedule.utils.ScheduleUtils.filterScheduleBySubgroup(schedule, selectedSubgroup)
+                DailyNotificationManager(context).scheduleNotification(filteredSchedule)
+            }
         } catch (e: Exception) {
             Log.e(TAG, "Error rescheduling", e)
         }

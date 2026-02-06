@@ -232,7 +232,7 @@ class ScheduleParser {
         // Если нет маркеров подгрупп, возвращаем одну подгруппу (с очисткой скобок)
         if (subjectMatches.isEmpty() && roomMatches.isEmpty()) {
             val cleanedRoom = room.replace(Regex("""\s*\([^)]+\)"""), "").trim()
-            return listOf(Subgroup(subject = subject, room = cleanedRoom))
+            return listOf(Subgroup(subject = subject, room = cleanedRoom, number = null))
         }
         
         val subgroups = mutableListOf<Subgroup>()
@@ -255,9 +255,10 @@ class ScheduleParser {
             for (i in subjectParts.indices) {
                 val subjectPart = subjectParts.getOrNull(i)?.trim() ?: ""
                 val roomPart = roomParts.getOrNull(i)?.trim() ?: ""
+                val number = subjectMatches.getOrNull(i)?.groupValues?.get(1)?.toIntOrNull()
                 
                 if (subjectPart.isNotEmpty()) {
-                    subgroups.add(Subgroup(subject = subjectPart, room = roomPart))
+                    subgroups.add(Subgroup(subject = subjectPart, room = roomPart, number = number))
                 }
             }
         } else if (roomMatches.isNotEmpty()) {
@@ -266,17 +267,36 @@ class ScheduleParser {
             
             for (i in roomParts.indices) {
                 val roomPart = roomParts.getOrNull(i)?.trim() ?: ""
+                val number = roomMatches.getOrNull(i)?.groupValues?.get(1)?.toIntOrNull()
                 
                 if (roomPart.isNotEmpty()) {
-                    subgroups.add(Subgroup(subject = subject, room = roomPart))
+                    subgroups.add(Subgroup(subject = subject, room = roomPart, number = number))
                 }
             }
         }
         
         return if (subgroups.isEmpty()) {
             val cleanedRoom = room.replace(Regex("""\s*\([^)]+\)"""), "").trim()
-            listOf(Subgroup(subject = subject, room = cleanedRoom))
+            listOf(Subgroup(subject = subject, room = cleanedRoom, number = null))
         } else {
+            // Если есть нумерованные подгруппы, проверяем наличие 1 и 2
+            val hasNumberedSubgroups = subgroups.any { it.number != null }
+            
+            if (hasNumberedSubgroups) {
+                // Если нет 1-й подгруппы, добавляем заглушку
+                if (subgroups.none { it.number == 1 }) {
+                    subgroups.add(Subgroup(subject = "-", room = "", number = 1))
+                }
+                
+                // Если нет 2-й подгруппы, добавляем заглушку
+                if (subgroups.none { it.number == 2 }) {
+                    subgroups.add(Subgroup(subject = "-", room = "", number = 2))
+                }
+                
+                // Сортируем по номеру подгруппы
+                subgroups.sortBy { it.number }
+            }
+            
             subgroups
         }
     }

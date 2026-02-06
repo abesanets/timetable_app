@@ -31,7 +31,9 @@ import com.example.schedule.features.alarms.ui.AlarmsScreen
 import com.example.schedule.features.buses.ui.BusesScreen
 import com.example.schedule.features.notifications.manager.DailyNotificationManager
 import com.example.schedule.features.schedule.ui.HomeScreen
+import com.example.schedule.features.schedule.utils.ScheduleUtils
 import com.example.schedule.features.settings.ui.SettingsScreen
+import com.example.schedule.features.widget.ui.ScheduleWidget
 import com.example.schedule.ui.navigation.Screen
 import com.example.schedule.ui.theme.MaterialYouTheme
 import com.yandex.mapkit.MapKitFactory
@@ -80,6 +82,42 @@ fun ScheduleApp() {
     val fetcher = remember { ScheduleFetcher() }
     val parser = remember { ScheduleParser() }
     
+    val selectedSubgroup by preferencesManager.selectedSubgroup.collectAsState(initial = 0)
+    
+    val filteredSchedule = remember(schedule, selectedSubgroup) {
+        schedule?.let { s ->
+            ScheduleUtils.filterScheduleBySubgroup(s, selectedSubgroup)
+        }
+    }
+
+    LaunchedEffect(selectedSubgroup) {
+        val currentSchedule = schedule ?: return@LaunchedEffect
+        
+        // Update notifications
+        val notificationsEnabled = preferencesManager.notificationsEnabled.first()
+        if (notificationsEnabled) {
+            val manager = DailyNotificationManager(context)
+            val filteredForNotification = ScheduleUtils.filterScheduleBySubgroup(currentSchedule, selectedSubgroup)
+            manager.scheduleNotification(filteredForNotification)
+        }
+        
+        // Update widget
+        scope.launch {
+            try {
+                val manager = androidx.glance.appwidget.GlanceAppWidgetManager(context)
+                val ids = manager.getGlanceIds(ScheduleWidget::class.java)
+                ids.forEach { glanceId ->
+                    androidx.glance.appwidget.state.updateAppWidgetState(context, glanceId) { prefs ->
+                        prefs.remove(androidx.datastore.preferences.core.stringPreferencesKey("cached_data"))
+                    }
+                    ScheduleWidget().update(context, glanceId)
+                }
+            } catch (e: Exception) {
+                // Ignore widget update errors in UI
+            }
+        }
+    }
+    
     LaunchedEffect(Unit) {
         preferencesManager.lastGroup.collect { savedGroup ->
             if (savedGroup != null && savedGroup.isNotBlank()) {
@@ -98,9 +136,11 @@ fun ScheduleApp() {
                     
                     // Планируем уведомление после загрузки расписания
                     val notificationsEnabled = preferencesManager.notificationsEnabled.first()
+                    val subgroup = preferencesManager.selectedSubgroup.first()
                     if (notificationsEnabled) {
                         val manager = DailyNotificationManager(context)
-                        manager.scheduleNotification(parsedSchedule)
+                        val filteredForNotification = ScheduleUtils.filterScheduleBySubgroup(parsedSchedule, subgroup)
+                        manager.scheduleNotification(filteredForNotification)
                     }
                 } catch (e: Exception) {
                     errorMessage = when (e) {
@@ -131,9 +171,11 @@ fun ScheduleApp() {
                 
                 // Планируем уведомление после загрузки расписания
                 val notificationsEnabled = preferencesManager.notificationsEnabled.first()
+                val subgroup = preferencesManager.selectedSubgroup.first()
                 if (notificationsEnabled) {
                     val manager = DailyNotificationManager(context)
-                    manager.scheduleNotification(parsedSchedule)
+                    val filteredForNotification = ScheduleUtils.filterScheduleBySubgroup(parsedSchedule, subgroup)
+                    manager.scheduleNotification(filteredForNotification)
                 }
             } catch (e: Exception) {
                 errorMessage = when (e) {
@@ -166,7 +208,7 @@ fun ScheduleApp() {
                     HomeScreen(
                         groupInput = groupInput,
                         onGroupInputChange = { groupInput = it },
-                        schedule = schedule,
+                        schedule = filteredSchedule,
                         errorMessage = errorMessage,
                         isLoading = isLoading,
                         loadSchedule = loadSchedule,
@@ -179,7 +221,7 @@ fun ScheduleApp() {
                     exitTransition = { fadeOut(tween(300, easing = FastOutSlowInEasing)) }
                 ) {
                     BusesScreen(
-                        schedule = schedule,
+                        schedule = filteredSchedule,
                         preferencesManager = preferencesManager
                     )
                 }

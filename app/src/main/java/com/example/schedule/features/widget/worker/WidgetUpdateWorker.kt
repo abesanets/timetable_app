@@ -28,6 +28,7 @@ class WidgetUpdateWorker(
             
             val prefsManager = PreferencesManager(context)
             val group = prefsManager.lastGroup.first()
+            val selectedSubgroup = prefsManager.selectedSubgroup.first()
             
             if (group.isNullOrBlank()) {
                 return@withContext Result.success()
@@ -38,14 +39,17 @@ class WidgetUpdateWorker(
             val parser = ScheduleParser()
             val html = fetcher.fetchScheduleHtml(group)
             val schedule = parser.parse(html, group)
+            
+            // Filter by subgroup
+            val filteredSchedule = ScheduleUtils.filterScheduleBySubgroup(schedule, selectedSubgroup)
 
             // 2. Prepare display data
-            val displayIndex = ScheduleUtils.findTodayIndex(schedule.days)
+            val displayIndex = ScheduleUtils.findTodayIndex(filteredSchedule.days)
             var dayLabel = ""
             var daySchedule: com.example.schedule.data.models.DaySchedule? = null
             
-            if (displayIndex >= 0 && displayIndex < schedule.days.size) {
-                 daySchedule = schedule.days[displayIndex]
+            if (displayIndex >= 0 && displayIndex < filteredSchedule.days.size) {
+                 daySchedule = filteredSchedule.days[displayIndex]
                  
                  // Calculate label logic (simplified reuse)
                  // You might want to extract this logic to a shared Utils class to avoid duplication

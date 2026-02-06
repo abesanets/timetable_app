@@ -1,12 +1,60 @@
 package com.example.schedule.features.schedule.utils
 
 import com.example.schedule.data.models.DaySchedule
+import com.example.schedule.data.models.Lesson
+import com.example.schedule.data.models.Schedule
+import com.example.schedule.data.models.Subgroup
 import com.example.schedule.data.models.WEEKDAY_SCHEDULE
 import com.example.schedule.data.models.SATURDAY_SCHEDULE
 import java.text.SimpleDateFormat
 import java.util.*
 
 object ScheduleUtils {
+    
+    private val dateFormat = SimpleDateFormat("dd.MM.yyyy", Locale("ru"))
+
+    /**
+     * Фильтрует расписание по номеру подгруппы
+     */
+    fun filterScheduleBySubgroup(schedule: Schedule, subgroupNumber: Int): Schedule {
+        if (subgroupNumber == 0) return schedule
+        
+        return schedule.copy(
+            days = schedule.days.map { day ->
+                day.copy(
+                    lessons = day.lessons.mapNotNull { lesson ->
+                        val filteredSubgroups = lesson.subgroups.filter { subgroup ->
+                            val isPhysicalEducation = subgroup.subject.contains("физ", ignoreCase = true) && 
+                                    (subgroup.subject.contains("культ", ignoreCase = true) || subgroup.subject.contains("к-ра", ignoreCase = true)) ||
+                                    subgroup.subject.equals("фзк", ignoreCase = true) ||
+                                    subgroup.subject.contains("фзкиз", ignoreCase = true)
+
+                            isPhysicalEducation || subgroup.number == null || subgroup.number == subgroupNumber 
+                        }
+                        
+                        // Если после фильтрации подгрупп не осталось ИЛИ осталась только пустая подгруппа (прочерк)
+                        // то удаляем всю пару из отображения для конкретной подгруппы
+                        val hasActualContent = filteredSubgroups.any { 
+                            it.subject != "-" && it.subject != "—" && it.subject.isNotBlank() 
+                        }
+                        
+                        if (!hasActualContent) null
+                        else lesson.copy(subgroups = filteredSubgroups)
+                    }
+                )
+            }
+        )
+    }
+
+    /**
+     * Извлекает дату из строки вида "Пн, 02.02.2026" или "02.02.2026"
+     */
+    private fun extractDate(dayDate: String): String {
+        // Ищем паттерн даты dd.mm.yyyy
+        val dateRegex = Regex("""\d{2}\.\d{2}\.\d{4}""")
+        val match = dateRegex.find(dayDate)
+        return match?.value ?: dayDate.substringAfter(",").trim()
+    }
     
     fun areClassesFinishedForToday(day: DaySchedule): Boolean {
         if (day.lessons.isEmpty()) return true
@@ -26,18 +74,19 @@ object ScheduleUtils {
         val endParts = endTime.split(":")
         val endMinutes = endParts[0].toInt() * 60 + endParts[1].toInt()
         
-        return currentTime >= endMinutes
+        // Добавляем 5 минут запаса после последней пары
+        return currentTime >= (endMinutes + 5)
     }
 
     fun findTodayIndex(days: List<DaySchedule>): Int {
+        if (days.isEmpty()) return -1
+        
         val today = Calendar.getInstance()
-        val dateFormat = SimpleDateFormat("dd.MM.yyyy", Locale("ru"))
         val todayString = dateFormat.format(today.time)
         
         // Сначала ищем сегодняшний день в расписании
         val todayIndex = days.indexOfFirst { day ->
-            val datePart = day.dayDate.substringAfter(", ").trim()
-            datePart == todayString
+            extractDate(day.dayDate) == todayString
         }
         
         // Если нашли сегодняшний день в расписании
@@ -51,24 +100,23 @@ object ScheduleUtils {
                         return i
                     }
                 }
-                // Если не нашли следующий день с занятиями, возвращаем сегодняшний
+                // Если в будущем нет занятий, остаемся на сегодняшнем
                 return todayIndex
             }
             return todayIndex
         }
         
-        // Если сегодняшний день НЕ найден в расписании (например, воскресенье)
+        // Если сегодняшний день НЕ найден в расписании (например, выходной)
         // Ищем ближайший будущий учебный день
         val currentDate = today.time
         
-        // Ищем ближайший день в будущем с занятиями
         var nearestFutureIndex = -1
         var nearestFutureDate: Date? = null
         
         for (i in days.indices) {
-            val dayDateStr = days[i].dayDate.substringAfter(", ").trim()
+            val dateStr = extractDate(days[i].dayDate)
             try {
-                val dayDate = dateFormat.parse(dayDateStr)
+                val dayDate = dateFormat.parse(dateStr)
                 if (dayDate != null && dayDate > currentDate && days[i].lessons.isNotEmpty()) {
                     if (nearestFutureDate == null || dayDate < nearestFutureDate) {
                         nearestFutureDate = dayDate
@@ -76,11 +124,10 @@ object ScheduleUtils {
                     }
                 }
             } catch (e: Exception) {
-                // Игнорируем ошибки парсинга даты
+                // Игнорируем ошибки парсинга
             }
         }
         
-        // Если нашли ближайший будущий день, возвращаем его
         if (nearestFutureIndex >= 0) {
             return nearestFutureIndex
         }
@@ -89,14 +136,47 @@ object ScheduleUtils {
         return days.indexOfFirst { it.lessons.isNotEmpty() }.takeIf { it >= 0 } ?: 0
     }
 
+    /**
+     * Определяет, нужно ли показывать заголовок "Следующий учебный день"
+     */
+    fun isShowingNextDay(days: List<DaySchedule>, displayIndex: Int): Boolean {
+        if (displayIndex < 0 || displayIndex >= days.size) return false
+        
+        val today = Calendar.getInstance()
+        val todayString = dateFormat.format(today.time)
+        
+        // Проверяем, есть ли сегодняшний день в расписании
+        val todayIndex = days.indexOfFirst { day ->
+            extractDate(day.dayDate) == todayString
+        }
+        
+        // Если сегодняшний день найден и мы показываем день после него
+        if (todayIndex >= 0 && displayIndex > todayIndex) {
+            return true
+        }
+        
+        // Если сегодняшнего дня нет в расписании (выходной)
+        if (todayIndex < 0) {
+            val displayDateStr = extractDate(days[displayIndex].dayDate)
+            try {
+                val displayDate = dateFormat.parse(displayDateStr)
+                val currentDate = today.time
+                // Если показываемый день в будущем, то он "следующий"
+                return displayDate != null && displayDate > currentDate
+            } catch (e: Exception) {
+                return false
+            }
+        }
+        
+        return false
+    }
+
     fun getClassesEndTime(days: List<DaySchedule>): Pair<Int, Int>? {
         val today = Calendar.getInstance()
-        val dateFormat = SimpleDateFormat("dd.MM.yyyy", Locale("ru"))
         val todayString = dateFormat.format(today.time)
 
         val todaySchedule = days.find { day ->
-            val datePart = day.dayDate.substringAfter(", ").trim()
-            datePart == todayString
+            extractDate(day.dayDate) == todayString
         } ?: return null
 
         if (todaySchedule.lessons.isEmpty()) return null

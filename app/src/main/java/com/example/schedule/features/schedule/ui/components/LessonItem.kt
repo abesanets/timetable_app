@@ -51,33 +51,39 @@ fun LessonItem(lesson: Lesson, isHighlighted: Boolean = false) {
             ) {
                 if (lesson.subgroups.size == 1) {
                     val subgroup = lesson.subgroups[0]
+                    val isNoLesson = subgroup.subject == "-" || subgroup.subject == "—" || subgroup.subject.isBlank()
+                    
                     Text(
-                        text = subgroup.subject,
+                        text = if (isNoLesson) "—" else subgroup.subject,
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onSurface,
+                        color = if (isNoLesson) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Surface(
-                            color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f),
-                            shape = CircleShape
+                    
+                    if (!isNoLesson && subgroup.room.isNotBlank()) {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text(
-                                text = subgroup.room,
-                                style = MaterialTheme.typography.labelMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.secondary,
-                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
-                            )
+                            Surface(
+                                color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f),
+                                shape = CircleShape
+                            ) {
+                                Text(
+                                    text = subgroup.room,
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.secondary,
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                                )
+                            }
                         }
                     }
                 } else {
                     lesson.subgroups.forEachIndexed { index, subgroup ->
+                        val isNoLesson = subgroup.subject == "-" || subgroup.subject == "—" || subgroup.subject.isBlank()
                         Column(
                             verticalArrangement = Arrangement.spacedBy(1.dp)
                         ) {
@@ -86,25 +92,28 @@ fun LessonItem(lesson: Lesson, isHighlighted: Boolean = false) {
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
-                                    text = subgroup.subject,
+                                    text = if (isNoLesson) "${subgroup.number}. —" else "${subgroup.number}. ${subgroup.subject}",
                                     style = MaterialTheme.typography.bodyMedium,
-                                    fontWeight = FontWeight.Medium,
-                                    color = MaterialTheme.colorScheme.onSurface,
+                                    fontWeight = if (isNoLesson) FontWeight.Normal else FontWeight.Medium,
+                                    color = if (isNoLesson) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis,
                                     modifier = Modifier.weight(1f)
                                 )
-                                Surface(
-                                    color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f),
-                                    shape = CircleShape
-                                ) {
-                                    Text(
-                                        text = subgroup.room,
-                                        style = MaterialTheme.typography.labelSmall,
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.secondary,
-                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
-                                    )
+                                
+                                if (!isNoLesson && subgroup.room.isNotBlank()) {
+                                    Surface(
+                                        color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f),
+                                        shape = CircleShape
+                                    ) {
+                                        Text(
+                                            text = subgroup.room,
+                                            style = MaterialTheme.typography.labelSmall,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.secondary,
+                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                                        )
+                                    }
                                 }
                             }
                         }

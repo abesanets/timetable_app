@@ -5,7 +5,8 @@ package com.example.schedule.data.models
  */
 data class Subgroup(
     val subject: String,        // Название предмета
-    val room: String            // Аудитория
+    val room: String,           // Аудитория
+    val number: Int? = null     // Номер подгруппы (1, 2, или null если для всех)
 )
 
 /**

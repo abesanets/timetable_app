@@ -11,6 +11,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -109,83 +111,101 @@ fun HomeScreen(
                 }
             }
             
-            AnimatedContent(
-                targetState = when {
-                    isLoading -> "loading"
-                    errorMessage != null -> "error"
-                    schedule != null -> "content"
-                    else -> "empty"
-                },
-                transitionSpec = {
-                    fadeIn(tween(500, easing = FastOutSlowInEasing)) togetherWith 
-                    fadeOut(tween(400, easing = FastOutSlowInEasing))
-                },
-                label = "content_transition",
-                modifier = Modifier.fillMaxSize()
-            ) { state ->
-                Box(modifier = Modifier.fillMaxSize()) {
-                    when (state) {
-                        "loading" -> {
-                            CircularProgressIndicator(
-                                modifier = Modifier
-                                    .align(Alignment.Center)
-                                    .size(48.dp),
-                                strokeWidth = 4.dp
-                            )
-                        }
-                        "error" -> {
-                            Column(
-                                modifier = Modifier
-                                    .align(Alignment.Center)
-                                    .padding(32.dp),
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.spacedBy(12.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Outlined.Close,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(64.dp),
-                                    tint = MaterialTheme.colorScheme.error
-                                )
-                                Text(
-                                    text = errorMessage ?: "",
-                                    style = MaterialTheme.typography.bodyLarge,
-                                    textAlign = TextAlign.Center,
-                                    color = MaterialTheme.colorScheme.onSurface
+            Box(modifier = Modifier.weight(1f)) {
+                AnimatedContent(
+                    targetState = when {
+                        isLoading -> "loading"
+                        errorMessage != null -> "error"
+                        schedule != null -> "content"
+                        else -> "empty"
+                    },
+                    transitionSpec = {
+                        fadeIn(tween(500, easing = FastOutSlowInEasing)) togetherWith 
+                        fadeOut(tween(400, easing = FastOutSlowInEasing))
+                    },
+                    label = "content_transition",
+                    modifier = Modifier.fillMaxSize()
+                ) { state ->
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        when (state) {
+                            "loading" -> {
+                                CircularProgressIndicator(
+                                    modifier = Modifier
+                                        .align(Alignment.Center)
+                                        .size(48.dp),
+                                    strokeWidth = 4.dp
                                 )
                             }
-                        }
-                        "content" -> {
-                            schedule?.let { currentSchedule ->
-                                // Используем составной key для полного пересоздания ScheduleList при обновлении
-                                key("${currentSchedule.group}_${currentSchedule.days.size}_${currentSchedule.days.firstOrNull()?.dayDate}") {
-                                    ScheduleList(schedule = currentSchedule)
+                            "error" -> {
+                                Column(
+                                    modifier = Modifier
+                                        .align(Alignment.Center)
+                                        .padding(32.dp),
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Outlined.Close,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(64.dp),
+                                        tint = MaterialTheme.colorScheme.error
+                                    )
+                                    Text(
+                                        text = errorMessage ?: "",
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        textAlign = TextAlign.Center,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
                                 }
                             }
-                        }
-                        "empty" -> {
-                            Column(
-                                modifier = Modifier
-                                    .align(Alignment.Center)
-                                    .padding(32.dp),
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.spacedBy(12.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Outlined.Search,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(64.dp),
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                                Text(
-                                    text = "Введите номер группы",
-                                    style = MaterialTheme.typography.bodyLarge,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
+                            "content" -> {
+                                schedule?.let { currentSchedule ->
+                                    // Используем составной key для полного пересоздания ScheduleList при обновлении
+                                    key("${currentSchedule.group}_${currentSchedule.days.size}_${currentSchedule.days.firstOrNull()?.dayDate}") {
+                                        ScheduleList(schedule = currentSchedule)
+                                    }
+                                }
+                            }
+                            "empty" -> {
+                                Column(
+                                    modifier = Modifier
+                                        .align(Alignment.Center)
+                                        .padding(32.dp),
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Outlined.Search,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(64.dp),
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                    Text(
+                                        text = "Введите номер группы",
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
                             }
                         }
                     }
                 }
+                
+                // Более широкий и плавный градиент для эффекта "невидимого" исчезновения
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(40.dp)
+                        .background(
+                            Brush.verticalGradient(
+                                colors = listOf(
+                                    MaterialTheme.colorScheme.surface,
+                                    MaterialTheme.colorScheme.surface.copy(alpha = 0.7f),
+                                    Color.Transparent
+                                )
+                            )
+                        )
+                )
             }
         }
     }

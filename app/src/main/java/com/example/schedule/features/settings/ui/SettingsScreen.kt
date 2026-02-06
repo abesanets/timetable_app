@@ -145,6 +145,90 @@ fun SettingsScreen() {
                     }
                 }
                 
+                // Подгруппа
+                val selectedSubgroup by preferencesManager.selectedSubgroup.collectAsState(initial = 0)
+                var showSubgroupDialog by remember { mutableStateOf(false) }
+                
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = MaterialTheme.shapes.large,
+                    color = MaterialTheme.colorScheme.surfaceContainer
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                showSubgroupDialog = true
+                            }
+                            .padding(horizontal = 16.dp, vertical = 14.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(
+                            modifier = Modifier.weight(1f),
+                            verticalArrangement = Arrangement.spacedBy(2.dp)
+                        ) {
+                            Text(
+                                text = "Моя подгруппа",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Text(
+                                text = when (selectedSubgroup) {
+                                    0 -> "Все подгруппы"
+                                    else -> "$selectedSubgroup подгруппа"
+                                },
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+                
+                if (showSubgroupDialog) {
+                    AlertDialog(
+                        onDismissRequest = { showSubgroupDialog = false },
+                        title = { Text(text = "Выберите подгруппу") },
+                        text = {
+                            Column {
+                                val options = listOf(
+                                    0 to "Все подгруппы",
+                                    1 to "1 подгруппа",
+                                    2 to "2 подгруппа"
+                                )
+                                
+                                options.forEach { (value, label) ->
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clickable {
+                                                scope.launch {
+                                                    preferencesManager.setSelectedSubgroup(value)
+                                                }
+                                                showSubgroupDialog = false
+                                            }
+                                            .padding(vertical = 12.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        RadioButton(
+                                            selected = (value == selectedSubgroup),
+                                            onClick = null
+                                        )
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text(text = label)
+                                    }
+                                }
+                            }
+                        },
+                        confirmButton = {
+                            TextButton(onClick = { showSubgroupDialog = false }) {
+                                Text("Отмена")
+                            }
+                        }
+                    )
+                }
+                
                 // Виджет
                 Surface(
                     modifier = Modifier.fillMaxWidth(),
@@ -235,6 +319,8 @@ fun SettingsScreen() {
                                     60L -> "Каждый час"
                                     180L -> "Каждые 3 часа"
                                     360L -> "Каждые 6 часов"
+                                    720L -> "Каждые 12 часов"
+                                    1440L -> "Раз в сутки"
                                     else -> "$widgetUpdateInterval мин"
                                 },
                                 style = MaterialTheme.typography.bodySmall,
@@ -256,7 +342,9 @@ fun SettingsScreen() {
                                     30L to "Каждые 30 минут",
                                     60L to "Каждый час",
                                     180L to "Каждые 3 часа",
-                                    360L to "Каждые 6 часов"
+                                    360L to "Каждые 6 часов",
+                                    720L to "Каждые 12 часов",
+                                    1440L to "Раз в сутки"
                                 )
                                 
                                 options.forEach { (value, label) ->

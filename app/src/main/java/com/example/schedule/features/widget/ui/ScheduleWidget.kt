@@ -276,7 +276,7 @@ fun LessonWidgetItem(lesson: Lesson) {
         modifier = GlanceModifier
             .fillMaxWidth()
             .background(GlanceTheme.colors.surfaceVariant)
-            .cornerRadius(24.dp)
+            .cornerRadius(20.dp)
             .padding(10.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalAlignment = Alignment.Start
@@ -307,29 +307,32 @@ fun LessonWidgetItem(lesson: Lesson) {
         ) {
             if (lesson.subgroups.size == 1) {
                 val subgroup = lesson.subgroups[0]
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = subgroup.subject,
-                        style = TextStyle(
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = GlanceTheme.colors.onSurface
-                        ),
-                        maxLines = 1,
-                        modifier = GlanceModifier.defaultWeight()
-                    )
-                    Spacer(modifier = GlanceModifier.width(8.dp))
+                val isNoLesson = subgroup.subject == "-" || subgroup.subject == "—" || subgroup.subject.isBlank()
+                
+                Text(
+                    text = if (isNoLesson) "—" else subgroup.subject,
+                    style = TextStyle(
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = if (isNoLesson) GlanceTheme.colors.onSurfaceVariant else GlanceTheme.colors.onSurface
+                    ),
+                    maxLines = 1,
+                    modifier = GlanceModifier.fillMaxWidth()
+                )
+                
+                if (!isNoLesson && subgroup.room.isNotBlank()) {
+                    Spacer(modifier = GlanceModifier.height(2.dp))
                     Box(
                         modifier = GlanceModifier
                             .background(GlanceTheme.colors.secondaryContainer)
-                            .cornerRadius(12.dp)
+                            .cornerRadius(8.dp)
                             .padding(horizontal = 8.dp, vertical = 2.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
                             text = subgroup.room,
                             style = TextStyle(
-                                fontSize = 11.sp,
+                                fontSize = 10.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = GlanceTheme.colors.onSecondaryContainer
                             )
@@ -338,36 +341,40 @@ fun LessonWidgetItem(lesson: Lesson) {
                 }
             } else {
                 lesson.subgroups.forEachIndexed { index, subgroup ->
+                    val isNoLesson = subgroup.subject == "-" || subgroup.subject == "—" || subgroup.subject.isBlank()
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalAlignment = Alignment.Start
                     ) {
                         Text(
-                            text = subgroup.subject,
+                            text = if (isNoLesson) "${subgroup.number}. —" else "${subgroup.number}. ${subgroup.subject}",
                             style = TextStyle(
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Medium,
-                                color = GlanceTheme.colors.onSurface
+                                color = if (isNoLesson) GlanceTheme.colors.onSurfaceVariant else GlanceTheme.colors.onSurface
                             ),
                             maxLines = 1,
                             modifier = GlanceModifier.defaultWeight()
                         )
-                        Spacer(modifier = GlanceModifier.width(6.dp))
-                        Box(
-                            modifier = GlanceModifier
-                                .background(GlanceTheme.colors.secondaryContainer)
-                                .cornerRadius(10.dp)
-                                .padding(horizontal = 6.dp, vertical = 1.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = subgroup.room,
-                                style = TextStyle(
-                                    fontSize = 10.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = GlanceTheme.colors.onSecondaryContainer
+                        
+                        if (!isNoLesson && subgroup.room.isNotBlank()) {
+                            Spacer(modifier = GlanceModifier.width(6.dp))
+                            Box(
+                                modifier = GlanceModifier
+                                    .background(GlanceTheme.colors.secondaryContainer)
+                                    .cornerRadius(8.dp)
+                                    .padding(horizontal = 6.dp, vertical = 1.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = subgroup.room,
+                                    style = TextStyle(
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = GlanceTheme.colors.onSecondaryContainer
+                                    )
                                 )
-                            )
+                            }
                         }
                     }
                     if (index < lesson.subgroups.size - 1) {
@@ -389,6 +396,7 @@ suspend fun loadWidgetData(context: Context): WidgetData {
     return try {
         val preferencesManager = PreferencesManager(context)
         val savedGroup = preferencesManager.lastGroup.first()
+        val selectedSubgroup = preferencesManager.selectedSubgroup.first()
         
         if (savedGroup.isNullOrBlank()) {
             return WidgetData(error = "Группа не выбрана")
@@ -405,9 +413,13 @@ suspend fun loadWidgetData(context: Context): WidgetData {
             parser.parse(html, savedGroup)
         }
         
-        val displayIndex = ScheduleUtils.findTodayIndex(schedule.days)
+        // Filter schedule by subgroup
+        val filteredSchedule = ScheduleUtils.filterScheduleBySubgroup(schedule, selectedSubgroup)
+        val filteredDays = filteredSchedule.days
         
-        if (displayIndex < 0 || displayIndex >= schedule.days.size) {
+        val displayIndex = ScheduleUtils.findTodayIndex(filteredDays)
+        
+        if (displayIndex < 0 || displayIndex >= filteredDays.size) {
             return WidgetData(error = "Нет расписания")
         }
         
@@ -415,7 +427,7 @@ suspend fun loadWidgetData(context: Context): WidgetData {
         val dateFormat = SimpleDateFormat("dd.MM.yyyy", Locale("ru"))
         val todayString = dateFormat.format(today.time)
         
-        val todayIndex = schedule.days.indexOfFirst { day ->
+        val todayIndex = filteredDays.indexOfFirst { day ->
             val datePart = day.dayDate.substringAfter(", ").trim()
             datePart == todayString
         }
@@ -427,7 +439,7 @@ suspend fun loadWidgetData(context: Context): WidgetData {
         }
         
         WidgetData(
-            daySchedule = schedule.days[displayIndex],
+            daySchedule = filteredDays[displayIndex],
             dayLabel = dayLabel
         )
     } catch (e: Exception) {

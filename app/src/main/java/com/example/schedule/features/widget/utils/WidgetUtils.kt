@@ -22,6 +22,9 @@ object WidgetUtils {
                 val sgJson = JSONObject()
                 sgJson.put("subject", subgroup.subject)
                 sgJson.put("room", subgroup.room)
+                if (subgroup.number != null) {
+                    sgJson.put("number", subgroup.number)
+                }
                 subgroupsArray.put(sgJson)
             }
             lessonJson.put("subgroups", subgroupsArray)
@@ -50,7 +53,8 @@ object WidgetUtils {
                     val sgJson = subgroupsArray.getJSONObject(j)
                     val subject = sgJson.getString("subject")
                     val room = sgJson.getString("room")
-                    subgroups.add(Subgroup(subject, room))
+                    val number = if (sgJson.has("number")) sgJson.getInt("number") else null
+                    subgroups.add(Subgroup(subject, room, number))
                 }
                 lessons.add(Lesson(lessonNumber, subgroups))
             }

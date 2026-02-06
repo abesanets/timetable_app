@@ -27,7 +27,8 @@ fun DayScheduleItem(
             isNext -> {
                 try {
                     val dateFormat = SimpleDateFormat("dd.MM.yyyy", Locale("ru"))
-                    val dateStr = day.dayDate.substringAfter(", ").trim()
+                    val dateRegex = Regex("""\d{2}\.\d{2}\.\d{4}""")
+                    val dateStr = dateRegex.find(day.dayDate)?.value ?: day.dayDate.substringAfter(",").trim()
                     val dayDate = dateFormat.parse(dateStr)
                     
                     val today = Calendar.getInstance().apply {
