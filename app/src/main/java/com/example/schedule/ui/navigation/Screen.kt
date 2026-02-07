@@ -9,5 +9,6 @@ sealed class Screen(val route: String, val title: String, val icon: ImageVector,
     object Home : Screen("home", "Расписание", Icons.Outlined.Home, Icons.Filled.Home)
     object Buses : Screen("buses", "Автобусы", Icons.Outlined.DirectionsBus, Icons.Filled.DirectionsBus)
     object Alarms : Screen("alarms", "Звонки", Icons.Outlined.Notifications, Icons.Filled.Notifications)
+    object Staff : Screen("staff", "Сотрудники", Icons.Outlined.People, Icons.Filled.People)
     object Settings : Screen("settings", "Настройки", Icons.Outlined.Settings, Icons.Filled.Settings)
 }

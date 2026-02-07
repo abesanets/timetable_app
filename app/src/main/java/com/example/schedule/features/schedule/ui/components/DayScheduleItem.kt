@@ -11,6 +11,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.schedule.data.models.DaySchedule
+import com.example.schedule.data.models.Lesson
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -19,7 +20,8 @@ fun DayScheduleItem(
     day: DaySchedule, 
     isToday: Boolean = false, 
     isNext: Boolean = false,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onLessonClick: (Lesson) -> Unit = {}
 ) {
     val statusLabel = remember(day.dayDate, isToday, isNext) {
         when {
@@ -106,7 +108,11 @@ fun DayScheduleItem(
             } else {
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) { // Уменьшили с 12.dp
                     day.lessons.forEach { lesson ->
-                        LessonItem(lesson = lesson, isHighlighted = isToday || isNext)
+                        LessonItem(
+                            lesson = lesson, 
+                            isHighlighted = isToday || isNext,
+                            onClick = { onLessonClick(lesson) }
+                        )
                     }
                 }
             }

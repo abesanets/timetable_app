@@ -4,6 +4,7 @@ import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
@@ -16,8 +17,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.example.schedule.data.models.Lesson
 import com.example.schedule.data.models.Schedule
+import com.example.schedule.features.schedule.ui.components.LessonDetailsSheet
 import com.example.schedule.features.schedule.ui.components.ScheduleList
+import com.example.schedule.features.staff.data.StaffMember
+import com.example.schedule.features.staff.ui.StaffDetailContent
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -30,6 +35,12 @@ fun HomeScreen(
     loadSchedule: () -> Unit,
     loadedGroup: String?
 ) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    var showBottomSheet by remember { mutableStateOf(false) }
+    var selectedLesson by remember { mutableStateOf<Lesson?>(null) }
+    var selectedStaffMember by remember { mutableStateOf<StaffMember?>(null) }
+    var sheetContentState by remember { mutableStateOf<SheetContent>(SheetContent.LessonDetails) }
+
     Surface(
         modifier = Modifier.fillMaxSize(),
         color = MaterialTheme.colorScheme.background
@@ -160,9 +171,15 @@ fun HomeScreen(
                             }
                             "content" -> {
                                 schedule?.let { currentSchedule ->
-                                    // Используем составной key для полного пересоздания ScheduleList при обновлении
                                     key("${currentSchedule.group}_${currentSchedule.days.size}_${currentSchedule.days.firstOrNull()?.dayDate}") {
-                                        ScheduleList(schedule = currentSchedule)
+                                        ScheduleList(
+                                            schedule = currentSchedule,
+                                            onLessonClick = { lesson ->
+                                                selectedLesson = lesson
+                                                sheetContentState = SheetContent.LessonDetails
+                                                showBottomSheet = true
+                                            }
+                                        )
                                     }
                                 }
                             }
@@ -191,7 +208,6 @@ fun HomeScreen(
                     }
                 }
                 
-                // Более широкий и плавный градиент для эффекта "невидимого" исчезновения
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -208,5 +224,70 @@ fun HomeScreen(
                 )
             }
         }
+
+        if (showBottomSheet) {
+            ModalBottomSheet(
+                onDismissRequest = { 
+                    showBottomSheet = false 
+                },
+                sheetState = sheetState,
+                containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                dragHandle = { BottomSheetDefaults.DragHandle() },
+                shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
+            ) {
+                Box(modifier = Modifier
+                    .fillMaxWidth()
+                    .animateContentSize(animationSpec = spring(stiffness = Spring.StiffnessHigh))
+                ) {
+                    AnimatedContent(
+                        targetState = sheetContentState,
+                        transitionSpec = {
+                            fadeIn(tween(150)) togetherWith fadeOut(tween(150))
+                        },
+                        label = "sheet_content"
+                    ) { state ->
+                        when (state) {
+                            SheetContent.LessonDetails -> {
+                                selectedLesson?.let { lesson ->
+                                    LessonDetailsSheet(
+                                        lesson = lesson,
+                                        onTeacherClick = { staffMember ->
+                                            selectedStaffMember = staffMember
+                                            sheetContentState = SheetContent.StaffDetails
+                                        }
+                                    )
+                                }
+                            }
+                            SheetContent.StaffDetails -> {
+                                selectedStaffMember?.let { member ->
+                                    Column {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            IconButton(onClick = { sheetContentState = SheetContent.LessonDetails }) {
+                                                Icon(Icons.Default.ArrowBack, contentDescription = "Назад")
+                                            }
+                                            Text(
+                                                text = "Назад к занятию",
+                                                style = MaterialTheme.typography.titleSmall,
+                                                fontWeight = FontWeight.Bold,
+                                                color = MaterialTheme.colorScheme.primary
+                                            )
+                                        }
+                                        StaffDetailContent(member)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
+}
+
+enum class SheetContent {
+    LessonDetails,
+    StaffDetails
 }

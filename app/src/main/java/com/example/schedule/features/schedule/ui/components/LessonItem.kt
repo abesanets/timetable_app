@@ -1,6 +1,7 @@
 package com.example.schedule.features.schedule.ui.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.*
@@ -14,9 +15,16 @@ import androidx.compose.ui.unit.dp
 import com.example.schedule.data.models.Lesson
 
 @Composable
-fun LessonItem(lesson: Lesson, isHighlighted: Boolean = false) {
+fun LessonItem(
+    lesson: Lesson, 
+    isHighlighted: Boolean = false,
+    onClick: () -> Unit = {}
+) {
     Surface(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(MaterialTheme.shapes.large)
+            .clickable(onClick = onClick),
         shape = MaterialTheme.shapes.large,
         color = if (isHighlighted)
             MaterialTheme.colorScheme.surfaceContainerHigh

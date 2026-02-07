@@ -9,13 +9,17 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.dp
+import com.example.schedule.data.models.Lesson
 import com.example.schedule.data.models.Schedule
 import com.example.schedule.features.schedule.utils.ScheduleUtils
 import java.text.SimpleDateFormat
 import java.util.*
 
 @Composable
-fun ScheduleList(schedule: Schedule) {
+fun ScheduleList(
+    schedule: Schedule,
+    onLessonClick: (Lesson) -> Unit = {}
+) {
     // Состояние для принудительного обновления каждую минуту
     var refreshTrigger by remember { mutableStateOf(0) }
     
@@ -88,7 +92,8 @@ fun ScheduleList(schedule: Schedule) {
                 day = day, 
                 isToday = isToday, 
                 isNext = isNext,
-                modifier = Modifier.graphicsLayer()
+                modifier = Modifier.graphicsLayer(),
+                onLessonClick = onLessonClick
             )
         }
     }

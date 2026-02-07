@@ -33,6 +33,7 @@ import com.example.schedule.features.notifications.manager.DailyNotificationMana
 import com.example.schedule.features.schedule.ui.HomeScreen
 import com.example.schedule.features.schedule.utils.ScheduleUtils
 import com.example.schedule.features.settings.ui.SettingsScreen
+import com.example.schedule.features.staff.ui.StaffScreen
 import com.example.schedule.features.widget.ui.ScheduleWidget
 import com.example.schedule.ui.navigation.Screen
 import com.example.schedule.ui.theme.MaterialYouTheme
@@ -233,6 +234,13 @@ fun ScheduleApp() {
                     AlarmsScreen()
                 }
                 composable(
+                    route = Screen.Staff.route,
+                    enterTransition = { fadeIn(tween(400, easing = FastOutSlowInEasing)) },
+                    exitTransition = { fadeOut(tween(300, easing = FastOutSlowInEasing)) }
+                ) {
+                    StaffScreen()
+                }
+                composable(
                     route = Screen.Settings.route,
                     enterTransition = { fadeIn(tween(400, easing = FastOutSlowInEasing)) },
                     exitTransition = { fadeOut(tween(300, easing = FastOutSlowInEasing)) }
@@ -283,7 +291,7 @@ fun ScheduleApp() {
                 val navBackStackEntry by navController.currentBackStackEntryAsState()
                 val currentDestination = navBackStackEntry?.destination
                 
-                listOf(Screen.Home, Screen.Buses, Screen.Alarms, Screen.Settings).forEach { screen ->
+                listOf(Screen.Home, Screen.Buses, Screen.Alarms, Screen.Staff, Screen.Settings).forEach { screen ->
                     val selected = currentDestination?.hierarchy?.any { it.route == screen.route } == true
                     
                     Box(
