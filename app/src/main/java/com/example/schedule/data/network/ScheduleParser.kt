@@ -232,7 +232,9 @@ class ScheduleParser {
         // Если нет маркеров подгрупп, возвращаем одну подгруппу (с очисткой скобок)
         if (subjectMatches.isEmpty() && roomMatches.isEmpty()) {
             val cleanedRoom = room.replace(Regex("""\s*\([^)]+\)"""), "").trim()
-            return listOf(Subgroup(subject = subject, room = cleanedRoom, number = null))
+            // Проверяем, является ли аудитория прочерком
+            val finalRoom = if (cleanedRoom == "-" || cleanedRoom == "—") "" else cleanedRoom
+            return listOf(Subgroup(subject = subject, room = finalRoom, number = null))
         }
         
         val subgroups = mutableListOf<Subgroup>()
@@ -247,8 +249,21 @@ class ScheduleParser {
                 // Если в аудитории есть маркеры, разбиваем по ним
                 splitBySubgroupMarkers(room, roomMatches)
             } else {
-                // Если в аудитории нет маркеров, пробуем разделить по пробелам/запятым
-                splitRoomsByDelimiters(room, subjectParts.size)
+                // Если в аудитории нет маркеров, проверяем - это одна аудитория для одной подгруппы
+                // или прочерк для остальных
+                val cleanedRoom = room.replace(Regex("""\s*\([^)]+\)"""), "").trim()
+                val isRoomDash = cleanedRoom == "-" || cleanedRoom == "—" || cleanedRoom.isEmpty()
+                
+                if (isRoomDash) {
+                    // Если аудитория - прочерк, все подгруппы без аудитории
+                    List(subjectParts.size) { "" }
+                } else if (subjectParts.size == 1) {
+                    // Если только одна подгруппа в предмете, аудитория для нее
+                    listOf(cleanedRoom)
+                } else {
+                    // Если несколько подгрупп, пробуем разделить аудитории
+                    splitRoomsByDelimiters(room, subjectParts.size)
+                }
             }
             
             // Создаем подгруппы
@@ -257,8 +272,11 @@ class ScheduleParser {
                 val roomPart = roomParts.getOrNull(i)?.trim() ?: ""
                 val number = subjectMatches.getOrNull(i)?.groupValues?.get(1)?.toIntOrNull()
                 
+                // Проверяем, является ли аудитория прочерком
+                val finalRoom = if (roomPart == "-" || roomPart == "—") "" else roomPart
+                
                 if (subjectPart.isNotEmpty()) {
-                    subgroups.add(Subgroup(subject = subjectPart, room = roomPart, number = number))
+                    subgroups.add(Subgroup(subject = subjectPart, room = finalRoom, number = number))
                 }
             }
         } else if (roomMatches.isNotEmpty()) {
@@ -269,28 +287,33 @@ class ScheduleParser {
                 val roomPart = roomParts.getOrNull(i)?.trim() ?: ""
                 val number = roomMatches.getOrNull(i)?.groupValues?.get(1)?.toIntOrNull()
                 
+                // Проверяем, является ли аудитория прочерком
+                val finalRoom = if (roomPart == "-" || roomPart == "—") "" else roomPart
+                
                 if (roomPart.isNotEmpty()) {
-                    subgroups.add(Subgroup(subject = subject, room = roomPart, number = number))
+                    subgroups.add(Subgroup(subject = subject, room = finalRoom, number = number))
                 }
             }
         }
         
         return if (subgroups.isEmpty()) {
             val cleanedRoom = room.replace(Regex("""\s*\([^)]+\)"""), "").trim()
-            listOf(Subgroup(subject = subject, room = cleanedRoom, number = null))
+            // Проверяем, является ли аудитория прочерком
+            val finalRoom = if (cleanedRoom == "-" || cleanedRoom == "—") "" else cleanedRoom
+            listOf(Subgroup(subject = subject, room = finalRoom, number = null))
         } else {
             // Если есть нумерованные подгруппы, проверяем наличие 1 и 2
             val hasNumberedSubgroups = subgroups.any { it.number != null }
             
             if (hasNumberedSubgroups) {
-                // Если нет 1-й подгруппы, добавляем заглушку
+                // Если нет 1-й подгруппы, добавляем пустую заглушку
                 if (subgroups.none { it.number == 1 }) {
-                    subgroups.add(Subgroup(subject = "-", room = "", number = 1))
+                    subgroups.add(0, Subgroup(subject = "", room = "", number = 1))
                 }
                 
-                // Если нет 2-й подгруппы, добавляем заглушку
+                // Если нет 2-й подгруппы, добавляем пустую заглушку
                 if (subgroups.none { it.number == 2 }) {
-                    subgroups.add(Subgroup(subject = "-", room = "", number = 2))
+                    subgroups.add(Subgroup(subject = "", room = "", number = 2))
                 }
                 
                 // Сортируем по номеру подгруппы
@@ -306,16 +329,26 @@ class ScheduleParser {
      * Возвращает список из expectedCount элементов
      */
     private fun splitRoomsByDelimiters(rooms: String, expectedCount: Int): List<String> {
-        // Сначала пробуем разделить по паттерну "номер (буква)" - например "503 (к)501 (к)"
-        // Обновленный паттерн: ищем слова содержащие цифры, опционально с уточнением в скобках
-        // Это позволяет находить "2-105", "703", "2-105 (к)" и т.д.
-        val roomPattern = Regex("""([^\s(,]*\d+[^\s(,]*(\s*\([^)]+\))?)""")
+        // Проверяем, является ли вся строка прочерком
+        val cleanedRooms = rooms.trim()
+        if (cleanedRooms == "-" || cleanedRooms == "—" || cleanedRooms.isEmpty()) {
+            // Если прочерк, возвращаем пустые строки для каждой подгруппы
+            return List(expectedCount) { "" }
+        }
+        
+        // Паттерн для поиска аудиторий: номер с опциональными скобками ИЛИ прочерк
+        // Примеры: "401 (к)", "503", "2-105", "-", "—"
+        val roomPattern = Regex("""([^\s(,]*\d+[^\s(,]*(\s*\([^)]+\))?|[-—])""")
         val matches = roomPattern.findAll(rooms).toList()
         
         if (matches.isNotEmpty()) {
-            // Убираем скобки с буквами из каждой аудитории
-            val parts = matches.map { 
-                it.value.trim().replace(Regex("""\s*\([^)]+\)"""), "")
+            // Обрабатываем каждую найденную аудиторию
+            val parts = matches.map { match ->
+                val value = match.value.trim()
+                // Убираем скобки с буквами
+                val cleaned = value.replace(Regex("""\s*\([^)]+\)"""), "").trim()
+                // Если это прочерк, возвращаем пустую строку
+                if (cleaned == "-" || cleaned == "—") "" else cleaned
             }
             
             // Если количество совпадает, возвращаем как есть
@@ -323,12 +356,11 @@ class ScheduleParser {
                 return parts
             }
             
-            // Если частей меньше чем нужно, дублируем последнюю
+            // Если частей меньше чем нужно, заполняем пустыми строками
             if (parts.size < expectedCount) {
                 val result = parts.toMutableList()
-                val lastRoom = parts.lastOrNull() ?: rooms.replace(Regex("""\s*\([^)]+\)"""), "")
                 while (result.size < expectedCount) {
-                    result.add(lastRoom)
+                    result.add("")
                 }
                 return result
             }
@@ -357,9 +389,13 @@ class ScheduleParser {
             }
         }
         
-        // Если ничего не подошло, убираем скобки и дублируем всю строку
-        val cleanedRoom = rooms.replace(Regex("""\s*\([^)]+\)"""), "")
-        return List(expectedCount) { cleanedRoom }
+        // Если ничего не подошло, возвращаем одну аудиторию и остальные пустые
+        val cleanedRoom = rooms.replace(Regex("""\s*\([^)]+\)"""), "").trim()
+        val result = mutableListOf(cleanedRoom)
+        while (result.size < expectedCount) {
+            result.add("")
+        }
+        return result
     }
     
     /**
