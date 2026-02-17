@@ -17,7 +17,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.schedule.data.preferences.PreferencesManager
-import com.example.schedule.features.notifications.manager.DailyNotificationManager
 import com.example.schedule.features.widget.ui.ScheduleWidgetReceiver
 import com.example.schedule.features.widget.worker.WidgetUpdateScheduler
 import kotlinx.coroutines.launch
@@ -31,18 +30,7 @@ fun SettingsScreen() {
     val context = LocalContext.current
     val preferencesManager = remember { PreferencesManager(context) }
     
-    val notificationsEnabled by preferencesManager.notificationsEnabled.collectAsState(initial = false)
     val scope = rememberCoroutineScope()
-    
-    val requestPermissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission()
-    ) { isGranted: Boolean ->
-        if (isGranted) {
-            scope.launch {
-                preferencesManager.setNotificationsEnabled(true)
-            }
-        }
-    }
     
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -71,80 +59,6 @@ fun SettingsScreen() {
                     .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 100.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                // Уведомления
-                Surface(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = MaterialTheme.shapes.large,
-                    color = MaterialTheme.colorScheme.surfaceContainer
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable(
-                                indication = null,
-                                interactionSource = remember { MutableInteractionSource() }
-                            ) {
-                                val newValue = !notificationsEnabled
-                                if (newValue) {
-                                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                                        requestPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
-                                    } else {
-                                        scope.launch {
-                                            preferencesManager.setNotificationsEnabled(true)
-                                        }
-                                    }
-                                } else {
-                                    scope.launch {
-                                        preferencesManager.setNotificationsEnabled(false)
-                                        val manager = DailyNotificationManager(context)
-                                        manager.cancelNotification()
-                                    }
-                                }
-                            }
-                            .padding(horizontal = 16.dp, vertical = 10.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column(
-                            modifier = Modifier.weight(1f),
-                            verticalArrangement = Arrangement.spacedBy(2.dp)
-                        ) {
-                            Text(
-                                text = "Уведомления",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.SemiBold,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                            Text(
-                                text = "Расписание на завтра",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                        
-                        Switch(
-                            checked = notificationsEnabled,
-                            onCheckedChange = { enabled ->
-                                if (enabled) {
-                                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                                        requestPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
-                                    } else {
-                                        scope.launch {
-                                            preferencesManager.setNotificationsEnabled(true)
-                                        }
-                                    }
-                                } else {
-                                    scope.launch {
-                                        preferencesManager.setNotificationsEnabled(false)
-                                        val manager = DailyNotificationManager(context)
-                                        manager.cancelNotification()
-                                    }
-                                }
-                            }
-                        )
-                    }
-                }
-                
                 // Подгруппа
                 val selectedSubgroup by preferencesManager.selectedSubgroup.collectAsState(initial = 0)
                 var showSubgroupDialog by remember { mutableStateOf(false) }

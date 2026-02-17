@@ -69,7 +69,4 @@ dependencies {
     // Glance для виджетов
     implementation("androidx.glance:glance-appwidget:1.1.0")
     implementation("androidx.glance:glance-material3:1.1.0")
-
-    // Yandex MapKit
-    implementation("com.yandex.android:maps.mobile:4.5.1-full")
 }

@@ -27,8 +27,6 @@ import com.example.schedule.data.models.Schedule
 import com.example.schedule.data.network.*
 import com.example.schedule.data.preferences.PreferencesManager
 import com.example.schedule.features.alarms.ui.AlarmsScreen
-import com.example.schedule.features.buses.ui.BusesScreen
-import com.example.schedule.features.notifications.manager.DailyNotificationManager
 import com.example.schedule.features.schedule.ui.HomeScreen
 import com.example.schedule.features.schedule.utils.ScheduleUtils
 import com.example.schedule.features.settings.ui.SettingsScreen
@@ -36,7 +34,6 @@ import com.example.schedule.features.staff.ui.StaffScreen
 import com.example.schedule.features.widget.ui.ScheduleWidget
 import com.example.schedule.ui.navigation.Screen
 import com.example.schedule.ui.theme.MaterialYouTheme
-import com.yandex.mapkit.MapKitFactory
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -53,16 +50,6 @@ class MainActivity : ComponentActivity() {
                 ScheduleApp()
             }
         }
-    }
-
-    override fun onStart() {
-        super.onStart()
-        MapKitFactory.getInstance().onStart()
-    }
-
-    override fun onStop() {
-        MapKitFactory.getInstance().onStop()
-        super.onStop()
     }
 }
 
@@ -92,14 +79,6 @@ fun ScheduleApp() {
 
     LaunchedEffect(selectedSubgroup) {
         val currentSchedule = schedule ?: return@LaunchedEffect
-        
-        // Update notifications
-        val notificationsEnabled = preferencesManager.notificationsEnabled.first()
-        if (notificationsEnabled) {
-            val manager = DailyNotificationManager(context)
-            val filteredForNotification = ScheduleUtils.filterScheduleBySubgroup(currentSchedule, selectedSubgroup)
-            manager.scheduleNotification(filteredForNotification)
-        }
         
         // Update widget
         scope.launch {
@@ -133,15 +112,6 @@ fun ScheduleApp() {
                     }
                     schedule = parsedSchedule
                     loadedGroup = savedGroup
-                    
-                    // Планируем уведомление после загрузки расписания
-                    val notificationsEnabled = preferencesManager.notificationsEnabled.first()
-                    val subgroup = preferencesManager.selectedSubgroup.first()
-                    if (notificationsEnabled) {
-                        val manager = DailyNotificationManager(context)
-                        val filteredForNotification = ScheduleUtils.filterScheduleBySubgroup(parsedSchedule, subgroup)
-                        manager.scheduleNotification(filteredForNotification)
-                    }
                 } catch (e: Exception) {
                     errorMessage = when (e) {
                         is NoInternetException, is GroupNotFoundException, is ServerErrorException -> e.message
@@ -168,15 +138,6 @@ fun ScheduleApp() {
                 schedule = parsedSchedule
                 loadedGroup = groupInput
                 preferencesManager.saveLastGroup(groupInput)
-                
-                // Планируем уведомление после загрузки расписания
-                val notificationsEnabled = preferencesManager.notificationsEnabled.first()
-                val subgroup = preferencesManager.selectedSubgroup.first()
-                if (notificationsEnabled) {
-                    val manager = DailyNotificationManager(context)
-                    val filteredForNotification = ScheduleUtils.filterScheduleBySubgroup(parsedSchedule, subgroup)
-                    manager.scheduleNotification(filteredForNotification)
-                }
             } catch (e: Exception) {
                 errorMessage = when (e) {
                     is NoInternetException, is GroupNotFoundException, is ServerErrorException -> e.message
@@ -213,16 +174,6 @@ fun ScheduleApp() {
                         isLoading = isLoading,
                         loadSchedule = loadSchedule,
                         loadedGroup = loadedGroup
-                    )
-                }
-                composable(
-                    route = Screen.Buses.route,
-                    enterTransition = { fadeIn(tween(400, easing = FastOutSlowInEasing)) },
-                    exitTransition = { fadeOut(tween(300, easing = FastOutSlowInEasing)) }
-                ) {
-                    BusesScreen(
-                        schedule = filteredSchedule,
-                        preferencesManager = preferencesManager
                     )
                 }
                 composable(
@@ -290,7 +241,7 @@ fun ScheduleApp() {
                 val navBackStackEntry by navController.currentBackStackEntryAsState()
                 val currentDestination = navBackStackEntry?.destination
                 
-                listOf(Screen.Home, Screen.Buses, Screen.Alarms, Screen.Staff, Screen.Settings).forEach { screen ->
+                listOf(Screen.Home, Screen.Alarms, Screen.Staff, Screen.Settings).forEach { screen ->
                     val selected = currentDestination?.hierarchy?.any { it.route == screen.route } == true
                     
                     Box(

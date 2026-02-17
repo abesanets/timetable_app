@@ -11,7 +11,6 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
-        maven { url = uri("https://repo.yandex.ru/yandex-maps-mobile/maven") }
     }
 }
 
