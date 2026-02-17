@@ -8,6 +8,6 @@ import androidx.compose.ui.graphics.vector.ImageVector
 sealed class Screen(val route: String, val title: String, val icon: ImageVector, val iconSelected: ImageVector) {
     object Home : Screen("home", "Расписание", Icons.Outlined.Home, Icons.Filled.Home)
     object Alarms : Screen("alarms", "Звонки", Icons.Outlined.Notifications, Icons.Filled.Notifications)
-    object Staff : Screen("staff", "Сотрудники", Icons.Outlined.People, Icons.Filled.People)
+    object Staff : Screen("staff", "Сотрудники", Icons.Outlined.Person, Icons.Filled.Person)
     object Settings : Screen("settings", "Настройки", Icons.Outlined.Settings, Icons.Filled.Settings)
 }
