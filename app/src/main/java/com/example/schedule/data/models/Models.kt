@@ -1,41 +1,26 @@
 package com.example.schedule.data.models
 
-/**
- * Модель одной подгруппы в паре
- */
 data class Subgroup(
-    val subject: String,        // Название предмета
-    val room: String,           // Аудитория
-    val number: Int? = null     // Номер подгруппы (1, 2, или null если для всех)
+    val subject: String,
+    val room: String,
+    val number: Int? = null
 )
 
-/**
- * Модель одной пары (может содержать несколько подгрупп)
- */
 data class Lesson(
-    val lessonNumber: String,   // Номер пары (1, 2, 3...)
-    val subgroups: List<Subgroup> // Список подгрупп
+    val lessonNumber: String,
+    val subgroups: List<Subgroup>
 )
 
-/**
- * Расписание на один день
- */
 data class DaySchedule(
-    val dayDate: String,        // Например: "Понедельник, 20.01.2025"
-    val lessons: List<Lesson>   // Список занятий в этот день
+    val dayDate: String,
+    val lessons: List<Lesson>
 )
 
-/**
- * Полное расписание группы
- */
 data class Schedule(
-    val group: String,          // Номер группы
-    val days: List<DaySchedule> // Расписание по дням
+    val group: String,
+    val days: List<DaySchedule>
 )
 
-/**
- * Время звонков
- */
 data class CallTime(
     val firstStart: String,
     val firstEnd: String,

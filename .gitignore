@@ -91,3 +91,4 @@ app/src/main/ic_launcher-playstore.png
 gradle/wrapper/gradle-wrapper.jar
 gradlew
 gradlew.bat
+*.salive

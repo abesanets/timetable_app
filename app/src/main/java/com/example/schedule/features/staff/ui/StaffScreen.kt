@@ -26,12 +26,15 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.schedule.core.utils.TextUtils
 import com.example.schedule.features.staff.data.StaffData
 import com.example.schedule.features.staff.data.StaffMember
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun StaffScreen() {
+fun StaffScreen(
+    onViewScheduleClick: (String) -> Unit = {}
+) {
     var expandedCategory by remember { mutableStateOf<String?>(null) }
     var selectedMember by remember { mutableStateOf<StaffMember?>(null) }
     var searchQuery by remember { mutableStateOf("") }
@@ -276,7 +279,13 @@ fun StaffScreen() {
                     .fillMaxWidth()
                     .animateContentSize(animationSpec = spring(stiffness = Spring.StiffnessHigh))
                 ) {
-                    StaffDetailContent(selectedMember!!)
+                    StaffDetailContent(
+                        member = selectedMember!!,
+                        onViewScheduleClick = {
+                            showBottomSheet = false
+                            onViewScheduleClick(it)
+                        }
+                    )
                 }
             }
         }
@@ -394,7 +403,10 @@ fun StaffMemberItem(member: StaffMember, onClick: () -> Unit) {
 }
 
 @Composable
-fun StaffDetailContent(member: StaffMember) {
+fun StaffDetailContent(
+    member: StaffMember,
+    onViewScheduleClick: (String) -> Unit = {}
+) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -418,6 +430,22 @@ fun StaffDetailContent(member: StaffMember) {
             }
             
             DetailItem(label = "Образование", value = member.education)
+        }
+
+        if (member.category == "Администрация" || member.category == "Преподаватели") {
+            Button(
+                onClick = { 
+                    val shortName = TextUtils.toShortName(member.fullName)
+                    onViewScheduleClick(shortName)
+                },
+                modifier = Modifier.fillMaxWidth(),
+                shape = MaterialTheme.shapes.large,
+                contentPadding = PaddingValues(16.dp)
+            ) {
+                Icon(Icons.Default.Search, contentDescription = null)
+                Spacer(Modifier.width(8.dp))
+                Text("Посмотреть расписание")
+            }
         }
     }
 }

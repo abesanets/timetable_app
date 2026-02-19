@@ -97,56 +97,51 @@ fun ScheduleApp() {
         }
     }
     
-    LaunchedEffect(Unit) {
-        preferencesManager.lastGroup.collect { savedGroup ->
-            if (savedGroup != null && savedGroup.isNotBlank()) {
-                groupInput = savedGroup
-                isLoading = true
-                errorMessage = null
-                try {
-                    val html = withContext(Dispatchers.IO) {
-                        fetcher.fetchScheduleHtml(savedGroup)
-                    }
-                    val parsedSchedule = withContext(Dispatchers.Default) {
-                        parser.parse(html, savedGroup)
-                    }
-                    schedule = parsedSchedule
-                    loadedGroup = savedGroup
-                } catch (e: Exception) {
-                    errorMessage = when (e) {
-                        is NoInternetException, is GroupNotFoundException, is ServerErrorException -> e.message
-                        else -> "Ошибка: ${e.message}"
-                    }
-                } finally {
-                    isLoading = false
+    val loadSchedule: (String?) -> Unit = { overrideInput ->
+        scope.launch {
+            val targetInput = overrideInput ?: groupInput
+            if (targetInput.isBlank()) return@launch
+            
+            val isNewGroup = targetInput != loadedGroup
+            
+            isLoading = true
+            errorMessage = null
+            
+            try {
+                val isTeacher = targetInput.contains(".")
+                val html = withContext(Dispatchers.IO) {
+                    if (isTeacher) fetcher.fetchTeacherScheduleHtml(targetInput)
+                    else fetcher.fetchScheduleHtml(targetInput)
                 }
+                val parsedSchedule = withContext(Dispatchers.Default) {
+                    if (isTeacher) parser.parseTeacherSchedule(html, targetInput)
+                    else parser.parse(html, targetInput)
+                }
+                schedule = parsedSchedule
+                loadedGroup = targetInput
+                preferencesManager.saveLastGroup(targetInput)
+                preferencesManager.saveSchedule(parsedSchedule)
+            } catch (e: Exception) {
+                errorMessage = when (e) {
+                    is NoInternetException, is GroupNotFoundException, 
+                    is TeacherNotFoundException, is ServerErrorException -> e.message
+                    else -> "Ошибка: ${e.message}"
+                }
+            } finally {
+                isLoading = false
             }
         }
     }
     
-    val loadSchedule: () -> Unit = {
-        scope.launch {
-            isLoading = true
-            errorMessage = null
-            try {
-                val html = withContext(Dispatchers.IO) {
-                    fetcher.fetchScheduleHtml(groupInput)
-                }
-                val parsedSchedule = withContext(Dispatchers.Default) {
-                    parser.parse(html, groupInput)
-                }
-                schedule = parsedSchedule
-                loadedGroup = groupInput
-                preferencesManager.saveLastGroup(groupInput)
-            } catch (e: Exception) {
-                errorMessage = when (e) {
-                    is NoInternetException, is GroupNotFoundException, is ServerErrorException -> e.message
-                    else -> "Ошибка: ${e.message}"
-                }
-                schedule = null
-            } finally {
-                isLoading = false
-            }
+    LaunchedEffect(Unit) {
+        preferencesManager.lastSchedule.first()?.let { cachedSchedule ->
+            schedule = cachedSchedule
+            loadedGroup = cachedSchedule.group
+            groupInput = cachedSchedule.group
+        }
+        
+        preferencesManager.lastGroup.first()?.let { savedGroup ->
+            if (savedGroup.isNotBlank()) loadSchedule(savedGroup)
         }
     }
     
@@ -166,15 +161,15 @@ fun ScheduleApp() {
                     enterTransition = { fadeIn(tween(400, easing = FastOutSlowInEasing)) },
                     exitTransition = { fadeOut(tween(300, easing = FastOutSlowInEasing)) }
                 ) {
-                    HomeScreen(
-                        groupInput = groupInput,
-                        onGroupInputChange = { groupInput = it },
-                        schedule = filteredSchedule,
-                        errorMessage = errorMessage,
-                        isLoading = isLoading,
-                        loadSchedule = loadSchedule,
-                        loadedGroup = loadedGroup
-                    )
+                        HomeScreen(
+                            groupInput = groupInput,
+                            onGroupInputChange = { groupInput = it },
+                            schedule = filteredSchedule,
+                            errorMessage = errorMessage,
+                            isLoading = isLoading,
+                            loadSchedule = { loadSchedule(it) },
+                            loadedGroup = loadedGroup
+                        )
                 }
                 composable(
                     route = Screen.Alarms.route,
@@ -188,7 +183,20 @@ fun ScheduleApp() {
                     enterTransition = { fadeIn(tween(400, easing = FastOutSlowInEasing)) },
                     exitTransition = { fadeOut(tween(300, easing = FastOutSlowInEasing)) }
                 ) {
-                    StaffScreen()
+                    StaffScreen(
+                        onViewScheduleClick = { teacherName ->
+                            groupInput = teacherName
+                            navController.navigate(Screen.Home.route) {
+                                popUpTo(navController.graph.findStartDestination().id) {
+                                    saveState = true
+                                }
+                                launchSingleTop = true
+                                restoreState = true
+                            }
+                            // Trigger loading after state update
+                            loadSchedule(teacherName)
+                        }
+                    )
                 }
                 composable(
                     route = Screen.Settings.route,

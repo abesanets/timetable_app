@@ -104,9 +104,8 @@ fun DayScheduleItem(
             }
             
             if (day.lessons.isEmpty()) {
-                // ... (no changes here, keeping compact)
             } else {
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) { // Уменьшили с 12.dp
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     day.lessons.forEach { lesson ->
                         LessonItem(
                             lesson = lesson, 

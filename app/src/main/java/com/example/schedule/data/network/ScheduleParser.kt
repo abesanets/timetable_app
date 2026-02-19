@@ -1,24 +1,14 @@
 package com.example.schedule.data.network
 
-import android.util.Log
 import com.example.schedule.data.models.*
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Element
 
-/**
- * Парсер HTML-страницы расписания
- */
 class ScheduleParser {
     
-    private val TAG = "ScheduleParser"
-    
-    /**
-     * Парсит HTML и возвращает структурированное расписание
-     */
     fun parse(html: String, group: String): Schedule {
         val doc = Jsoup.parse(html)
         
-        // Ищем ВСЕ вхождения текста "Группа - XX" (для двух недель)
         val groupTexts = mutableListOf<Element>()
         groupTexts.addAll(doc.getElementsContainingOwnText("Группа - $group"))
         if (groupTexts.isEmpty()) {
@@ -32,146 +22,119 @@ class ScheduleParser {
             throw GroupNotFoundException("Группа $group не найдена")
         }
         
-        Log.d(TAG, "Найдено блоков расписания для группы: ${groupTexts.size}")
-        
-        // Собираем расписание из всех найденных блоков
         val allDaysSchedule = mutableListOf<DaySchedule>()
         
-        groupTexts.forEachIndexed { blockIndex, groupText ->
-            Log.d(TAG, "Обработка блока ${blockIndex + 1}: ${groupText.text()}")
+        groupTexts.forEach { groupText ->
+            val table = findTableForGroup(groupText) ?: return@forEach
             
-            // Ищем таблицу для текущего блока
-            val table = findTableForGroup(groupText)
-            
-            if (table == null) {
-                Log.w(TAG, "Таблица для блока ${blockIndex + 1} не найдена, пропускаем")
-                return@forEachIndexed
-            }
-            
-            Log.d(TAG, "Найдена таблица для блока ${blockIndex + 1}")
-            
-            // Получаем все строки таблицы
             val rows = table.select("tr")
-            if (rows.size < 2) {
-                Log.w(TAG, "Таблица блока ${blockIndex + 1} слишком маленькая, пропускаем")
-                return@forEachIndexed
-            }
+            if (rows.size < 2) return@forEach
             
-            // Первая строка — заголовки дней
             val headerRow = rows[0]
             val dayHeaders = parseDayHeaders(headerRow)
             
-            Log.d(TAG, "Блок ${blockIndex + 1}: найдено дней: ${dayHeaders.size}")
+            val daysSchedule = dayHeaders.map { DaySchedule(it, mutableListOf()) }
             
-            // Инициализируем расписание для каждого дня
-            val daysSchedule = dayHeaders.map { dayName ->
-                DaySchedule(dayDate = dayName, lessons = mutableListOf())
-            }
-            
-            // Парсим строки с занятиями
-            val dataStartIndex = 2 // Пропускаем заголовок (0) и строку с номерами (1)
-            
+            val dataStartIndex = 2 
             for (i in dataStartIndex until rows.size) {
-                val row = rows[i]
-                val lessonNumber = (i - dataStartIndex + 1).toString()
-                parseLessonRow(row, daysSchedule, lessonNumber)
+                parseLessonRow(rows[i], daysSchedule, (i - dataStartIndex + 1).toString())
             }
             
-            // Добавляем дни из этого блока к общему расписанию
             allDaysSchedule.addAll(daysSchedule)
-            
-            Log.d(TAG, "Блок ${blockIndex + 1}: добавлено ${daysSchedule.size} дней")
         }
         
         if (allDaysSchedule.isEmpty()) {
             throw GroupNotFoundException("Расписание для группы $group не найдено")
         }
         
-        // Логируем итоговый результат
-        Log.d(TAG, "Итого дней в расписании: ${allDaysSchedule.size}")
-        allDaysSchedule.forEachIndexed { index, day ->
-            Log.d(TAG, "День ${index + 1} (${day.dayDate}): ${day.lessons.size} занятий")
-        }
-        
         return Schedule(group = group, days = allDaysSchedule)
     }
     
-    /**
-     * Находит таблицу расписания для элемента с текстом группы
-     */
-    private fun findTableForGroup(groupText: Element): Element? {
-        var table: Element? = null
+    fun parseTeacherSchedule(html: String, teacherName: String): Schedule {
+        val doc = Jsoup.parse(html)
+        val headerRegex = Regex("Преподаватель\\s*-\\s*${Regex.escape(teacherName)}", RegexOption.IGNORE_CASE)
+        val teacherHeader = doc.getElementsMatchingOwnText(headerRegex.toPattern()).firstOrNull()
+            ?: doc.getElementsContainingOwnText(teacherName).firstOrNull()
+            
+        if (teacherHeader == null) {
+            throw TeacherNotFoundException("Преподаватель $teacherName не найден")
+        }
         
-        // Вариант 1: таблица - следующий элемент после текста группы
-        var nextElement = groupText.nextElementSibling()
-        while (nextElement != null && table == null) {
-            if (nextElement.tagName() == "table") {
-                table = nextElement
-                break
+        val table = findTableForGroup(teacherHeader)
+            ?: throw TeacherNotFoundException("Таблица расписания для $teacherName не найдена")
+        
+        val rows = table.select("tr")
+        if (rows.size < 2) {
+            throw TeacherNotFoundException("Расписание для $teacherName пустое")
+        }
+        
+        val dayHeaders = parseDayHeaders(rows[0])
+        val daysSchedule = dayHeaders.map { DaySchedule(it, mutableListOf()) }
+        
+        for (i in 2 until rows.size) {
+            val row = rows[i]
+            val lessonNumber = row.selectFirst("th, td:first-child")?.text()?.trim() ?: (i - 1).toString()
+            val cells = row.select("td")
+            val expandedCells = expandRow(cells)
+            
+            var dayIndex = 0
+            var cellIndex = 0
+            
+            while (cellIndex < expandedCells.size - 1 && dayIndex < daysSchedule.size) {
+                val subject = expandedCells.getOrNull(cellIndex)?.replace('\u00a0', ' ')?.trim() ?: ""
+                val room = expandedCells.getOrNull(cellIndex + 1)?.replace('\u00a0', ' ')?.trim() ?: ""
+                
+                if (isValidLesson(subject)) {
+                    val lesson = Lesson(
+                        lessonNumber = lessonNumber,
+                        subgroups = listOf(Subgroup(subject = subject, room = room))
+                    )
+                    (daysSchedule[dayIndex].lessons as MutableList).add(lesson)
+                }
+                
+                cellIndex += 2
+                dayIndex++
             }
+        }
+        
+        return Schedule(group = teacherName, days = daysSchedule)
+    }
+
+    private fun findTableForGroup(groupText: Element): Element? {
+        var nextElement = groupText.nextElementSibling()
+        while (nextElement != null) {
+            if (nextElement.tagName() == "table") return nextElement
             nextElement = nextElement.nextElementSibling()
         }
         
-        // Вариант 2: таблица внутри родительского элемента
-        if (table == null) {
-            val parent = groupText.parent()
-            table = parent?.selectFirst("table")
+        groupText.parent()?.selectFirst("table")?.let { return it }
+        
+        var parentSibling = groupText.parent()?.nextElementSibling()
+        while (parentSibling != null) {
+            parentSibling.selectFirst("table")?.let { return it }
+            parentSibling = parentSibling.nextElementSibling()
         }
         
-        // Вариант 3: ищем таблицу в следующих siblings родителя
-        if (table == null) {
-            var parentSibling = groupText.parent()?.nextElementSibling()
-            while (parentSibling != null && table == null) {
-                table = parentSibling.selectFirst("table")
-                if (table != null) break
-                parentSibling = parentSibling.nextElementSibling()
-            }
-        }
-        
-        return table
+        return null
     }
     
-    /**
-     * Парсит заголовки дней из первой строки таблицы
-     * Возвращает список названий дней (БЕЗ первой ячейки "№")
-     */
     private fun parseDayHeaders(headerRow: Element): List<String> {
         val cells = headerRow.select("td, th")
         if (cells.isEmpty()) return emptyList()
         
         val dayNames = mutableListOf<String>()
-        
-        // ПРОПУСКАЕМ первую ячейку (это "№")
         for (i in 1 until cells.size) {
-            val cell = cells[i]
-            val text = cell.text().trim()
-            
-            // Добавляем название дня (без учёта colspan для заголовков)
-            if (text.isNotEmpty()) {
-                dayNames.add(text)
-            }
+            val text = cells[i].text().trim()
+            if (text.isNotEmpty()) dayNames.add(text)
         }
-        
         return dayNames
     }
     
-    /**
-     * Парсит одну строку с занятиями
-     * Разворачивает colspan и добавляет занятия в соответствующие дни
-     */
     private fun parseLessonRow(row: Element, daysSchedule: List<DaySchedule>, lessonNumber: String) {
         val cells = row.select("td")
         if (cells.isEmpty()) return
         
-        // Разворачиваем строку с учётом colspan
         val expandedCells = expandRow(cells)
-        
-        Log.d(TAG, "Пара №$lessonNumber: ${expandedCells.size} ячеек")
-        
-        // ВСЕ ячейки - это данные (нет номера пары в начале!)
-        // Структура: [предмет_ПН, аудитория_ПН, предмет_ВТ, аудитория_ВТ, ...]
-        
-        // Проходим по дням с шагом 2 (предмет, аудитория)
         var dayIndex = 0
         var cellIndex = 0
         
@@ -179,37 +142,19 @@ class ScheduleParser {
             val subject = expandedCells.getOrNull(cellIndex)?.trim() ?: ""
             val room = expandedCells.getOrNull(cellIndex + 1)?.trim() ?: ""
             
-            Log.d(TAG, "  День $dayIndex: предмет='$subject', аудитория='$room'")
-            
-            // Пропускаем пустые или прочерки
             if (isValidLesson(subject) || isValidLesson(room)) {
-                // Проверяем, есть ли подгруппы в тексте
                 val subgroups = parseSubgroups(subject, room)
-                
-                // Ищем существующую пару с таким номером
                 val dayLessons = daysSchedule[dayIndex].lessons as MutableList
                 val existingLesson = dayLessons.find { it.lessonNumber == lessonNumber }
                 
                 if (existingLesson != null) {
-                    // Добавляем подгруппы к существующей паре
                     val updatedSubgroups = existingLesson.subgroups.toMutableList()
                     updatedSubgroups.addAll(subgroups)
-                    val updatedLesson = existingLesson.copy(subgroups = updatedSubgroups)
-                    
                     val index = dayLessons.indexOf(existingLesson)
-                    dayLessons[index] = updatedLesson
-                    Log.d(TAG, "    Добавлены подгруппы к паре $lessonNumber: ${subgroups.size} шт.")
+                    dayLessons[index] = existingLesson.copy(subgroups = updatedSubgroups)
                 } else {
-                    // Создаем новую пару
-                    val lesson = Lesson(
-                        lessonNumber = lessonNumber,
-                        subgroups = subgroups
-                    )
-                    dayLessons.add(lesson)
-                    Log.d(TAG, "    Создана новая пара с ${subgroups.size} подгруппами")
+                    dayLessons.add(Lesson(lessonNumber = lessonNumber, subgroups = subgroups))
                 }
-            } else {
-                Log.d(TAG, "    Пропущено (пустое или прочерк)")
             }
             
             cellIndex += 2
@@ -217,240 +162,114 @@ class ScheduleParser {
         }
     }
     
-    /**
-     * Распознает подгруппы в тексте предмета и аудитории
-     * Ищет паттерны типа "1.Предмет1 2.Предмет2" или "1. Предмет1 2. Предмет2"
-     */
     private fun parseSubgroups(subject: String, room: String): List<Subgroup> {
-        // Регулярное выражение для поиска подгрупп: "1.", "2.", "3." и т.д.
         val subgroupPattern = Regex("""(\d+)\.\s*""")
-        
-        // Проверяем, есть ли маркеры подгрупп в тексте предмета
         val subjectMatches = subgroupPattern.findAll(subject).toList()
         val roomMatches = subgroupPattern.findAll(room).toList()
         
-        // Если нет маркеров подгрупп, возвращаем одну подгруппу (с очисткой скобок)
         if (subjectMatches.isEmpty() && roomMatches.isEmpty()) {
             val cleanedRoom = room.replace(Regex("""\s*\([^)]+\)"""), "").trim()
-            // Проверяем, является ли аудитория прочерком
             val finalRoom = if (cleanedRoom == "-" || cleanedRoom == "—") "" else cleanedRoom
             return listOf(Subgroup(subject = subject, room = finalRoom, number = null))
         }
         
         val subgroups = mutableListOf<Subgroup>()
         
-        // Если есть маркеры в предмете
         if (subjectMatches.isNotEmpty()) {
-            // Разбиваем текст предмета на части
             val subjectParts = splitBySubgroupMarkers(subject, subjectMatches)
-            
-            // Разбиваем текст аудитории на части
             val roomParts = if (roomMatches.isNotEmpty()) {
-                // Если в аудитории есть маркеры, разбиваем по ним
                 splitBySubgroupMarkers(room, roomMatches)
             } else {
-                // Если в аудитории нет маркеров, проверяем - это одна аудитория для одной подгруппы
-                // или прочерк для остальных
                 val cleanedRoom = room.replace(Regex("""\s*\([^)]+\)"""), "").trim()
                 val isRoomDash = cleanedRoom == "-" || cleanedRoom == "—" || cleanedRoom.isEmpty()
                 
-                if (isRoomDash) {
-                    // Если аудитория - прочерк, все подгруппы без аудитории
-                    List(subjectParts.size) { "" }
-                } else if (subjectParts.size == 1) {
-                    // Если только одна подгруппа в предмете, аудитория для нее
-                    listOf(cleanedRoom)
-                } else {
-                    // Если несколько подгрупп, пробуем разделить аудитории
-                    splitRoomsByDelimiters(room, subjectParts.size)
-                }
+                if (isRoomDash) List(subjectParts.size) { "" }
+                else if (subjectParts.size == 1) listOf(cleanedRoom)
+                else splitRoomsByDelimiters(room, subjectParts.size)
             }
             
-            // Создаем подгруппы
             for (i in subjectParts.indices) {
-                val subjectPart = subjectParts.getOrNull(i)?.trim() ?: ""
-                val roomPart = roomParts.getOrNull(i)?.trim() ?: ""
+                val sPart = subjectParts.getOrNull(i)?.trim() ?: ""
+                val rPart = roomParts.getOrNull(i)?.trim() ?: ""
                 val number = subjectMatches.getOrNull(i)?.groupValues?.get(1)?.toIntOrNull()
-                
-                // Проверяем, является ли аудитория прочерком
-                val finalRoom = if (roomPart == "-" || roomPart == "—") "" else roomPart
-                
-                if (subjectPart.isNotEmpty()) {
-                    subgroups.add(Subgroup(subject = subjectPart, room = finalRoom, number = number))
-                }
+                val finalRoom = if (rPart == "-" || rPart == "—") "" else rPart
+                if (sPart.isNotEmpty()) subgroups.add(Subgroup(sPart, finalRoom, number))
             }
         } else if (roomMatches.isNotEmpty()) {
-            // Если маркеры только в аудитории
             val roomParts = splitBySubgroupMarkers(room, roomMatches)
-            
             for (i in roomParts.indices) {
-                val roomPart = roomParts.getOrNull(i)?.trim() ?: ""
+                val rPart = roomParts.getOrNull(i)?.trim() ?: ""
                 val number = roomMatches.getOrNull(i)?.groupValues?.get(1)?.toIntOrNull()
-                
-                // Проверяем, является ли аудитория прочерком
-                val finalRoom = if (roomPart == "-" || roomPart == "—") "" else roomPart
-                
-                if (roomPart.isNotEmpty()) {
-                    subgroups.add(Subgroup(subject = subject, room = finalRoom, number = number))
-                }
+                val finalRoom = if (rPart == "-" || rPart == "—") "" else rPart
+                if (rPart.isNotEmpty()) subgroups.add(Subgroup(subject, finalRoom, number))
             }
         }
         
         return if (subgroups.isEmpty()) {
             val cleanedRoom = room.replace(Regex("""\s*\([^)]+\)"""), "").trim()
-            // Проверяем, является ли аудитория прочерком
             val finalRoom = if (cleanedRoom == "-" || cleanedRoom == "—") "" else cleanedRoom
             listOf(Subgroup(subject = subject, room = finalRoom, number = null))
         } else {
-            // Если есть нумерованные подгруппы, проверяем наличие 1 и 2
             val hasNumberedSubgroups = subgroups.any { it.number != null }
-            
             if (hasNumberedSubgroups) {
-                // Если нет 1-й подгруппы, добавляем пустую заглушку
-                if (subgroups.none { it.number == 1 }) {
-                    subgroups.add(0, Subgroup(subject = "", room = "", number = 1))
-                }
-                
-                // Если нет 2-й подгруппы, добавляем пустую заглушку
-                if (subgroups.none { it.number == 2 }) {
-                    subgroups.add(Subgroup(subject = "", room = "", number = 2))
-                }
-                
-                // Сортируем по номеру подгруппы
+                if (subgroups.none { it.number == 1 }) subgroups.add(0, Subgroup("", "", 1))
+                if (subgroups.none { it.number == 2 }) subgroups.add(Subgroup("", "", 2))
                 subgroups.sortBy { it.number }
             }
-            
             subgroups
         }
     }
     
-    /**
-     * Разделяет строку с аудиториями по разделителям (пробелы, запятые)
-     * Возвращает список из expectedCount элементов
-     */
     private fun splitRoomsByDelimiters(rooms: String, expectedCount: Int): List<String> {
-        // Проверяем, является ли вся строка прочерком
         val cleanedRooms = rooms.trim()
         if (cleanedRooms == "-" || cleanedRooms == "—" || cleanedRooms.isEmpty()) {
-            // Если прочерк, возвращаем пустые строки для каждой подгруппы
             return List(expectedCount) { "" }
         }
         
-        // Паттерн для поиска аудиторий: номер с опциональными скобками ИЛИ прочерк
-        // Примеры: "401 (к)", "503", "2-105", "-", "—"
         val roomPattern = Regex("""([^\s(,]*\d+[^\s(,]*(\s*\([^)]+\))?|[-—])""")
         val matches = roomPattern.findAll(rooms).toList()
         
         if (matches.isNotEmpty()) {
-            // Обрабатываем каждую найденную аудиторию
             val parts = matches.map { match ->
-                val value = match.value.trim()
-                // Убираем скобки с буквами
-                val cleaned = value.replace(Regex("""\s*\([^)]+\)"""), "").trim()
-                // Если это прочерк, возвращаем пустую строку
+                val cleaned = match.value.trim().replace(Regex("""\s*\([^)]+\)"""), "").trim()
                 if (cleaned == "-" || cleaned == "—") "" else cleaned
             }
-            
-            // Если количество совпадает, возвращаем как есть
-            if (parts.size == expectedCount) {
-                return parts
-            }
-            
-            // Если частей меньше чем нужно, заполняем пустыми строками
+            if (parts.size == expectedCount) return parts
             if (parts.size < expectedCount) {
-                val result = parts.toMutableList()
-                while (result.size < expectedCount) {
-                    result.add("")
-                }
-                return result
+                return parts.toMutableList().apply { while (size < expectedCount) add("") }
             }
-            
-            // Если частей больше, берем первые expectedCount
             return parts.take(expectedCount)
         }
         
-        // Если паттерн не найден, пробуем разделить по запятым
-        val commaParts = rooms.split(",")
-            .map { it.trim().replace(Regex("""\s*\([^)]+\)"""), "") }
-            .filter { it.isNotEmpty() }
+        val commaParts = rooms.split(",").map { it.trim().replace(Regex("""\s*\([^)]+\)"""), "") }.filter { it.isNotEmpty() }
+        if (commaParts.size >= expectedCount) return commaParts.take(expectedCount)
         
-        if (commaParts.size >= expectedCount) {
-            return commaParts.take(expectedCount)
-        }
-        
-        // Если запятых нет, пробуем по пробелам (но только если нет скобок)
         if (!rooms.contains("(")) {
-            val spaceParts = rooms.split(Regex("""\s+"""))
-                .map { it.trim() }
-                .filter { it.isNotEmpty() }
-            
-            if (spaceParts.size == expectedCount) {
-                return spaceParts
-            }
+            val spaceParts = rooms.split(Regex("""\s+""")).map { it.trim() }.filter { it.isNotEmpty() }
+            if (spaceParts.size == expectedCount) return spaceParts
         }
         
-        // Если ничего не подошло, возвращаем одну аудиторию и остальные пустые
-        val cleanedRoom = rooms.replace(Regex("""\s*\([^)]+\)"""), "").trim()
-        val result = mutableListOf(cleanedRoom)
-        while (result.size < expectedCount) {
-            result.add("")
-        }
-        return result
+        return mutableListOf(rooms.replace(Regex("""\s*\([^)]+\)"""), "").trim()).apply { while (size < expectedCount) add("") }
     }
     
-    /**
-     * Разбивает текст на части по маркерам подгрупп
-     */
     private fun splitBySubgroupMarkers(text: String, matches: List<MatchResult>): List<String> {
         if (matches.isEmpty()) return listOf(text)
-        
-        val parts = mutableListOf<String>()
-        
-        for (i in matches.indices) {
-            val currentMatch = matches[i]
-            val nextMatch = matches.getOrNull(i + 1)
-            
-            // Начало текущей подгруппы (после маркера "1.", "2." и т.д.)
-            val start = currentMatch.range.last + 1
-            
-            // Конец текущей подгруппы (до следующего маркера или до конца строки)
-            val end = nextMatch?.range?.first ?: text.length
-            
-            // Извлекаем текст подгруппы
-            val part = text.substring(start, end).trim()
-            parts.add(part)
+        return matches.indices.map { i ->
+            val start = matches[i].range.last + 1
+            val end = matches.getOrNull(i + 1)?.range?.first ?: text.length
+            text.substring(start, end).trim()
         }
-        
-        return parts
     }
     
-    /**
-     * Разворачивает строку таблицы с учётом colspan
-     * Аналог expand_row из Python-кода
-     */
     private fun expandRow(cells: List<Element>): List<String> {
         val expanded = mutableListOf<String>()
-        
         for (cell in cells) {
             val text = cell.text().trim()
             val colspan = cell.attr("colspan").toIntOrNull() ?: 1
-            
-            // Добавляем текст ячейки colspan раз
-            repeat(colspan) {
-                expanded.add(text)
-            }
+            repeat(colspan) { expanded.add(text) }
         }
-        
         return expanded
     }
     
-    /**
-     * Проверяет, является ли текст валидным занятием
-     * (не пустой, не прочерк)
-     */
-    private fun isValidLesson(text: String): Boolean {
-        if (text.isEmpty()) return false
-        if (text == "-" || text == "—") return false
-        return true
-    }
+    private fun isValidLesson(text: String): Boolean = text.isNotEmpty() && text != "-" && text != "—"
 }
