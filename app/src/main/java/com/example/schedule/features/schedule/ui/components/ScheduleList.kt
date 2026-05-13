@@ -18,7 +18,7 @@ import java.util.*
 @Composable
 fun ScheduleList(
     schedule: Schedule,
-    onLessonClick: (Lesson) -> Unit = {}
+    onLessonClick: (String, Lesson) -> Unit = { _, _ -> }
 ) {
     // Состояние для принудительного обновления каждую минуту
     var refreshTrigger by remember { mutableStateOf(0) }
@@ -93,7 +93,7 @@ fun ScheduleList(
                 isToday = isToday, 
                 isNext = isNext,
                 modifier = Modifier.graphicsLayer(),
-                onLessonClick = onLessonClick
+                onLessonClick = { lesson -> onLessonClick(day.dayDate, lesson) }
             )
         }
     }

@@ -3,7 +3,10 @@ package com.example.schedule.data.preferences
 import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.example.schedule.data.models.Schedule
@@ -20,8 +23,9 @@ class PreferencesManager(private val context: Context) {
     companion object {
         private val LAST_GROUP_KEY = stringPreferencesKey("last_group")
         private val LAST_SCHEDULE_KEY = stringPreferencesKey("last_schedule")
-        private val SELECTED_SUBGROUP_KEY = androidx.datastore.preferences.core.intPreferencesKey("selected_subgroup")
-        private val WIDGET_UPDATE_INTERVAL_KEY = androidx.datastore.preferences.core.longPreferencesKey("widget_update_interval")
+        private val SELECTED_SUBGROUP_KEY = intPreferencesKey("selected_subgroup")
+        private val SHOW_OTHER_SUBGROUP_IN_DETAILS_KEY = booleanPreferencesKey("show_other_subgroup_in_details")
+        private val WIDGET_UPDATE_INTERVAL_KEY = longPreferencesKey("widget_update_interval")
     }
     
     val lastGroup: Flow<String?> = context.dataStore.data
@@ -44,6 +48,11 @@ class PreferencesManager(private val context: Context) {
         .map { preferences ->
             preferences[SELECTED_SUBGROUP_KEY] ?: 0
         }
+
+    val showOtherSubgroupInDetails: Flow<Boolean> = context.dataStore.data
+        .map { preferences ->
+            preferences[SHOW_OTHER_SUBGROUP_IN_DETAILS_KEY] ?: false
+        }
     
     val widgetUpdateInterval: Flow<Long> = context.dataStore.data
         .map { preferences ->
@@ -65,6 +74,12 @@ class PreferencesManager(private val context: Context) {
     suspend fun setSelectedSubgroup(subgroup: Int) {
         context.dataStore.edit { preferences ->
             preferences[SELECTED_SUBGROUP_KEY] = subgroup
+        }
+    }
+
+    suspend fun setShowOtherSubgroupInDetails(show: Boolean) {
+        context.dataStore.edit { preferences ->
+            preferences[SHOW_OTHER_SUBGROUP_IN_DETAILS_KEY] = show
         }
     }
     

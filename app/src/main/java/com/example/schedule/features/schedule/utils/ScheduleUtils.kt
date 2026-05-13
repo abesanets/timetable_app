@@ -21,12 +21,7 @@ object ScheduleUtils {
                 day.copy(
                     lessons = day.lessons.mapNotNull { lesson ->
                         val filteredSubgroups = lesson.subgroups.filter { subgroup ->
-                            val isPhysicalEducation = subgroup.subject.contains("физ", ignoreCase = true) && 
-                                    (subgroup.subject.contains("культ", ignoreCase = true) || subgroup.subject.contains("к-ра", ignoreCase = true)) ||
-                                    subgroup.subject.equals("фзк", ignoreCase = true) ||
-                                    subgroup.subject.contains("фзкиз", ignoreCase = true)
-
-                            isPhysicalEducation || subgroup.number == null || subgroup.number == subgroupNumber 
+                            isPhysicalEducation(subgroup.subject) || subgroup.number == null || subgroup.number == subgroupNumber 
                         }
                         
                         val hasActualContent = filteredSubgroups.any { 
@@ -39,6 +34,33 @@ object ScheduleUtils {
                 )
             }
         )
+    }
+
+    fun shouldShowAllSubgroupsInDetails(
+        lesson: Lesson,
+        selectedSubgroup: Int,
+        showOtherSubgroupInDetails: Boolean
+    ): Boolean {
+        if (!showOtherSubgroupInDetails || selectedSubgroup == 0) return false
+
+        val numberedSubgroups = lesson.subgroups.filter { it.number != null }
+        if (numberedSubgroups.size < 2) return false
+        if (numberedSubgroups.any { isPhysicalEducation(it.subject) }) return false
+
+        val hasSelectedSubgroup = numberedSubgroups.any { it.number == selectedSubgroup && it.hasActualContent() }
+        val hasOtherSubgroup = numberedSubgroups.any { it.number != selectedSubgroup && it.hasActualContent() }
+        return hasSelectedSubgroup && hasOtherSubgroup
+    }
+
+    fun isPhysicalEducation(subject: String): Boolean {
+        return subject.contains("физ", ignoreCase = true) &&
+                (subject.contains("культ", ignoreCase = true) || subject.contains("к-ра", ignoreCase = true)) ||
+                subject.equals("фзк", ignoreCase = true) ||
+                subject.contains("фзкиз", ignoreCase = true)
+    }
+
+    private fun Subgroup.hasActualContent(): Boolean {
+        return subject != "-" && subject != "—" && subject.isNotBlank()
     }
 
     private fun extractDate(dayDate: String): String {

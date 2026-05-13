@@ -70,6 +70,7 @@ fun ScheduleApp() {
     val parser = remember { ScheduleParser() }
     
     val selectedSubgroup by preferencesManager.selectedSubgroup.collectAsState(initial = 0)
+    val showOtherSubgroupInDetails by preferencesManager.showOtherSubgroupInDetails.collectAsState(initial = false)
     
     val filteredSchedule = remember(schedule, selectedSubgroup) {
         schedule?.let { s ->
@@ -165,6 +166,9 @@ fun ScheduleApp() {
                             groupInput = groupInput,
                             onGroupInputChange = { groupInput = it },
                             schedule = filteredSchedule,
+                            fullSchedule = schedule,
+                            selectedSubgroup = selectedSubgroup,
+                            showOtherSubgroupInDetails = showOtherSubgroupInDetails,
                             errorMessage = errorMessage,
                             isLoading = isLoading,
                             loadSchedule = { loadSchedule(it) },

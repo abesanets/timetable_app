@@ -29,6 +29,7 @@ import com.example.schedule.data.models.Lesson
 import com.example.schedule.data.models.Schedule
 import com.example.schedule.features.schedule.ui.components.LessonDetailsSheet
 import com.example.schedule.features.schedule.ui.components.ScheduleList
+import com.example.schedule.features.schedule.utils.ScheduleUtils
 import com.example.schedule.features.staff.data.StaffData
 import com.example.schedule.features.staff.data.StaffMember
 import com.example.schedule.features.staff.ui.StaffDetailContent
@@ -39,6 +40,9 @@ fun HomeScreen(
     groupInput: String,
     onGroupInputChange: (String) -> Unit,
     schedule: Schedule?,
+    fullSchedule: Schedule?,
+    selectedSubgroup: Int,
+    showOtherSubgroupInDetails: Boolean,
     errorMessage: String?,
     isLoading: Boolean,
     loadSchedule: (String?) -> Unit,
@@ -260,8 +264,25 @@ fun HomeScreen(
                                         key("${currentSchedule.group}_${currentSchedule.days.size}_${currentSchedule.days.firstOrNull()?.dayDate}") {
                                             ScheduleList(
                                                 schedule = currentSchedule,
-                                                onLessonClick = { lesson ->
-                                                    selectedLesson = lesson
+                                                onLessonClick = { dayDate, lesson ->
+                                                    val originalLesson = fullSchedule
+                                                        ?.days
+                                                        ?.firstOrNull { it.dayDate == dayDate }
+                                                        ?.lessons
+                                                        ?.firstOrNull { it.lessonNumber == lesson.lessonNumber }
+
+                                                    selectedLesson = if (
+                                                        originalLesson != null &&
+                                                        ScheduleUtils.shouldShowAllSubgroupsInDetails(
+                                                            lesson = originalLesson,
+                                                            selectedSubgroup = selectedSubgroup,
+                                                            showOtherSubgroupInDetails = showOtherSubgroupInDetails
+                                                        )
+                                                    ) {
+                                                        originalLesson
+                                                    } else {
+                                                        lesson
+                                                    }
                                                     sheetContentState = SheetContent.LessonDetails
                                                     showBottomSheet = true
                                                 }

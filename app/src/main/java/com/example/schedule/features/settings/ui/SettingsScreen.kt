@@ -61,6 +61,7 @@ fun SettingsScreen() {
             ) {
                 // Подгруппа
                 val selectedSubgroup by preferencesManager.selectedSubgroup.collectAsState(initial = 0)
+                val showOtherSubgroupInDetails by preferencesManager.showOtherSubgroupInDetails.collectAsState(initial = false)
                 var showSubgroupDialog by remember { mutableStateOf(false) }
                 
                 Surface(
@@ -97,6 +98,65 @@ fun SettingsScreen() {
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
+                    }
+                }
+
+                val isOtherSubgroupOptionEnabled = selectedSubgroup != 0
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = MaterialTheme.shapes.large,
+                    color = MaterialTheme.colorScheme.surfaceContainer
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable(enabled = isOtherSubgroupOptionEnabled) {
+                                scope.launch {
+                                    preferencesManager.setShowOtherSubgroupInDetails(!showOtherSubgroupInDetails)
+                                }
+                            }
+                            .padding(horizontal = 16.dp, vertical = 14.dp),
+                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(
+                            modifier = Modifier.weight(1f),
+                            verticalArrangement = Arrangement.spacedBy(2.dp)
+                        ) {
+                            Text(
+                                text = "Вторая подгруппа в деталях",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                color = if (isOtherSubgroupOptionEnabled) {
+                                    MaterialTheme.colorScheme.onSurface
+                                } else {
+                                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                                }
+                            )
+                            Text(
+                                text = if (isOtherSubgroupOptionEnabled) {
+                                    "Показывать разделённые занятия другой подгруппы"
+                                } else {
+                                    "Доступно при выборе 1 или 2 подгруппы"
+                                },
+                                style = MaterialTheme.typography.bodySmall,
+                                color = if (isOtherSubgroupOptionEnabled) {
+                                    MaterialTheme.colorScheme.onSurfaceVariant
+                                } else {
+                                    MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.38f)
+                                }
+                            )
+                        }
+
+                        Switch(
+                            checked = showOtherSubgroupInDetails && isOtherSubgroupOptionEnabled,
+                            enabled = isOtherSubgroupOptionEnabled,
+                            onCheckedChange = { checked ->
+                                scope.launch {
+                                    preferencesManager.setShowOtherSubgroupInDetails(checked)
+                                }
+                            }
+                        )
                     }
                 }
                 
