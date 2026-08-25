@@ -37,7 +37,23 @@ class ScheduleParser {
             
             val dataStartIndex = 2 
             for (i in dataStartIndex until rows.size) {
-                parseLessonRow(rows[i], daysSchedule, (i - dataStartIndex + 1).toString())
+                val row = rows[i]
+                val allCells = row.children()
+                if (allCells.isEmpty()) continue
+
+                var lessonNumber = (i - dataStartIndex + 1).toString()
+                val dataCells: List<Element>
+
+                val firstText = allCells[0].text().replace('\u00a0', ' ').trim()
+                val numMatch = Regex("""\d+""").find(firstText)
+                if (numMatch != null) {
+                    lessonNumber = numMatch.value
+                    dataCells = allCells.subList(1, allCells.size)
+                } else {
+                    dataCells = row.select("td")
+                }
+
+                parseLessonRow(dataCells, daysSchedule, lessonNumber)
             }
             
             allDaysSchedule.addAll(daysSchedule)
@@ -73,9 +89,22 @@ class ScheduleParser {
         
         for (i in 2 until rows.size) {
             val row = rows[i]
-            val lessonNumber = row.selectFirst("th, td:first-child")?.text()?.trim() ?: (i - 1).toString()
-            val cells = row.select("td")
-            val expandedCells = expandRow(cells)
+            val allCells = row.children()
+            if (allCells.isEmpty()) continue
+
+            var lessonNumber = (i - 1).toString()
+            val dataCells: List<Element>
+
+            val firstText = allCells[0].text().replace('\u00a0', ' ').trim()
+            val numMatch = Regex("""\d+""").find(firstText)
+            if (numMatch != null) {
+                lessonNumber = numMatch.value
+                dataCells = allCells.subList(1, allCells.size)
+            } else {
+                dataCells = row.select("td")
+            }
+
+            val expandedCells = expandRow(dataCells)
             
             var dayIndex = 0
             var cellIndex = 0
@@ -130,8 +159,7 @@ class ScheduleParser {
         return dayNames
     }
     
-    private fun parseLessonRow(row: Element, daysSchedule: List<DaySchedule>, lessonNumber: String) {
-        val cells = row.select("td")
+    private fun parseLessonRow(cells: List<Element>, daysSchedule: List<DaySchedule>, lessonNumber: String) {
         if (cells.isEmpty()) return
         
         val expandedCells = expandRow(cells)

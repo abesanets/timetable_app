@@ -180,7 +180,10 @@ fun ScheduleApp() {
                     enterTransition = { fadeIn(tween(400, easing = FastOutSlowInEasing)) },
                     exitTransition = { fadeOut(tween(300, easing = FastOutSlowInEasing)) }
                 ) {
-                    AlarmsScreen()
+                    val defaultBuilding = remember(loadedGroup, groupInput) {
+                        com.example.schedule.core.utils.BuildingUtils.getBuildingForGroup(loadedGroup ?: groupInput)
+                    }
+                    AlarmsScreen(initialBuilding = defaultBuilding)
                 }
                 composable(
                     route = Screen.Staff.route,

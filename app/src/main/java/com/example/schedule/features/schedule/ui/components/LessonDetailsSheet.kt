@@ -7,6 +7,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Person
@@ -19,6 +20,8 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.schedule.core.utils.BuildingUtils
+import com.example.schedule.data.models.BuildingId
 import com.example.schedule.data.models.Lesson
 import com.example.schedule.data.models.Subgroup
 import com.example.schedule.features.staff.data.StaffMember
@@ -27,15 +30,23 @@ import com.example.schedule.features.staff.utils.StaffUtils
 @Composable
 fun LessonDetailsSheet(
     lesson: Lesson,
+    groupName: String? = null,
     onTeacherClick: (StaffMember) -> Unit
 ) {
+    val building = remember(groupName) {
+        BuildingUtils.getBuildingForGroup(groupName)
+    }
+    val callTime = remember(lesson.lessonNumber, building) {
+        BuildingUtils.getCallTime(lesson.lessonNumber, building)
+    }
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 24.dp)
             .padding(bottom = 48.dp, top = 8.dp),
-        verticalArrangement = Arrangement.spacedBy(24.dp)
+        verticalArrangement = Arrangement.spacedBy(20.dp)
     ) {
         Text(
             text = "Информация о занятии",
@@ -43,6 +54,24 @@ fun LessonDetailsSheet(
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onSurface
         )
+
+        if (callTime != null) {
+            val timeText = if (callTime.isSolid) {
+                "${callTime.firstStart} – ${callTime.firstEnd}"
+            } else {
+                "${callTime.firstStart} – ${callTime.secondEnd} (${callTime.firstStart}–${callTime.firstEnd}, ${callTime.secondStart}–${callTime.secondEnd})"
+            }
+
+            DetailRow(
+                icon = Icons.Default.DateRange,
+                label = "Время (${lesson.lessonNumber} пара)",
+                text = timeText
+            )
+
+            HorizontalDivider(
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+            )
+        }
 
         lesson.subgroups.forEachIndexed { index, subgroup ->
             val isNoLesson = subgroup.subject == "-" || subgroup.subject == "—" || subgroup.subject.isBlank()

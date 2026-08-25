@@ -452,6 +452,7 @@ fun HomeScreen(
                                 selectedLesson?.let { lesson ->
                                     LessonDetailsSheet(
                                         lesson = lesson,
+                                        groupName = loadedGroup ?: groupInput,
                                         onTeacherClick = { staffMember ->
                                             selectedStaffMember = staffMember
                                             sheetContentState = SheetContent.StaffDetails

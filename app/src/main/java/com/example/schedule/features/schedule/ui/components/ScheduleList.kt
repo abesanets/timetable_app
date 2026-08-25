@@ -2,13 +2,13 @@ package com.example.schedule.features.schedule.ui.components
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.dp
+import com.example.schedule.core.utils.BuildingUtils
 import com.example.schedule.data.models.Lesson
 import com.example.schedule.data.models.Schedule
 import com.example.schedule.features.schedule.utils.ScheduleUtils
@@ -31,9 +31,13 @@ fun ScheduleList(
         }
     }
     
+    val building = remember(schedule.group) {
+        BuildingUtils.getBuildingForGroup(schedule.group)
+    }
+
     // Вычисляем индекс активного дня
-    val displayIndex = remember(schedule, refreshTrigger) { 
-        ScheduleUtils.findTodayIndex(schedule.days) 
+    val displayIndex = remember(schedule, refreshTrigger, building) { 
+        ScheduleUtils.findTodayIndex(schedule.days, building) 
     }
     
     // Вычисляем, показываем ли мы "следующий" день
