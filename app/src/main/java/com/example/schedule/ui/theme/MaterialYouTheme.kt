@@ -69,12 +69,7 @@ fun MaterialYouTheme(content: @Composable () -> Unit) {
     
     MaterialTheme(
         colorScheme = colorScheme,
-        typography = Typography(
-            displayLarge = MaterialTheme.typography.displayLarge.copy(fontWeight = FontWeight.Bold),
-            headlineMedium = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.SemiBold),
-            titleLarge = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold),
-            bodyLarge = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Normal),
-        ),
+        typography = AppTypography,
         shapes = Shapes(
             extraSmall = RoundedCornerShape(8.dp),
             small = RoundedCornerShape(12.dp),

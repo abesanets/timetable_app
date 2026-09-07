@@ -8,7 +8,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -244,7 +244,7 @@ fun SettingsScreen() {
                         }
                         
                         Icon(
-                            imageVector = Icons.Outlined.Add,
+                            imageVector = Icons.Rounded.Add,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.secondary
                         )

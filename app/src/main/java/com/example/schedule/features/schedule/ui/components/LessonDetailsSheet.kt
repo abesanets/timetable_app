@@ -7,10 +7,10 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.DateRange
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.LocationOn
-import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.rounded.DateRange
+import androidx.compose.material.icons.rounded.Info
+import androidx.compose.material.icons.rounded.LocationOn
+import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -63,7 +63,7 @@ fun LessonDetailsSheet(
             }
 
             DetailRow(
-                icon = Icons.Default.DateRange,
+                icon = Icons.Rounded.DateRange,
                 label = "Время (${lesson.lessonNumber} пара)",
                 text = timeText
             )
@@ -118,7 +118,7 @@ fun SubgroupDetailItem(
         }
 
         DetailRow(
-            icon = Icons.Default.Info,
+            icon = Icons.Rounded.Info,
             label = "Предмет",
             text = cleanSubject.ifBlank { subgroup.subject }
         )
@@ -126,7 +126,7 @@ fun SubgroupDetailItem(
         if (subgroup.room.isNotBlank() && subgroup.room != "-" && subgroup.room != "—") {
             val roomDescription = StaffUtils.getRoomDescription(subgroup.room)
             DetailRow(
-                icon = Icons.Default.LocationOn,
+                icon = Icons.Rounded.LocationOn,
                 label = "Аудитория: ${subgroup.room}",
                 text = roomDescription
             )
@@ -140,7 +140,7 @@ fun SubgroupDetailItem(
              }
              
              DetailRow(
-                icon = Icons.Default.Person,
+                icon = Icons.Rounded.Person,
                 label = "Преподаватель",
                 text = teacherLabel,
                 onClick = if (staffMember != null) { { onTeacherClick(staffMember) } } else null,

@@ -6,8 +6,12 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.outlined.*
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.Clear
+import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.Refresh
+import androidx.compose.material.icons.rounded.Search
+import androidx.compose.material.icons.rounded.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -145,7 +149,7 @@ fun HomeScreen(
                                 trailingIcon = {
                                     if (groupInput.isNotEmpty()) {
                                         IconButton(onClick = { onGroupInputChange("") }) {
-                                            Icon(Icons.Default.Clear, contentDescription = null)
+                                            Icon(Icons.Rounded.Clear, contentDescription = null)
                                         }
                                     }
                                 }
@@ -203,7 +207,7 @@ fun HomeScreen(
                                 )
                             } else {
                                 Icon(
-                                    imageVector = if (groupInput != loadedGroup) Icons.Default.Search else Icons.Default.Refresh,
+                                    imageVector = if (groupInput != loadedGroup) Icons.Rounded.Search else Icons.Rounded.Refresh,
                                     contentDescription = null,
                                     modifier = Modifier.size(24.dp)
                                 )
@@ -246,7 +250,7 @@ fun HomeScreen(
                                         verticalArrangement = Arrangement.spacedBy(12.dp)
                                     ) {
                                         Icon(
-                                            imageVector = Icons.Outlined.Close,
+                                            imageVector = Icons.Rounded.Close,
                                             contentDescription = null,
                                             modifier = Modifier.size(64.dp),
                                             tint = MaterialTheme.colorScheme.error
@@ -299,7 +303,7 @@ fun HomeScreen(
                                         verticalArrangement = Arrangement.spacedBy(12.dp)
                                     ) {
                                         Icon(
-                                            imageVector = Icons.Outlined.Search,
+                                            imageVector = Icons.Rounded.Search,
                                             contentDescription = null,
                                             modifier = Modifier.size(64.dp),
                                             tint = MaterialTheme.colorScheme.onSurfaceVariant
@@ -357,7 +361,7 @@ fun HomeScreen(
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         Icon(
-                            imageVector = Icons.Default.Warning,
+                            imageVector = Icons.Rounded.Warning,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.error
                         )
@@ -375,7 +379,7 @@ fun HomeScreen(
                             )
                         }
                         Icon(
-                            imageVector = Icons.Default.Close,
+                            imageVector = Icons.Rounded.Close,
                             contentDescription = "Скрыть",
                             modifier = Modifier.size(20.dp)
                         )
@@ -468,7 +472,7 @@ fun HomeScreen(
                                             verticalAlignment = Alignment.CenterVertically
                                         ) {
                                             IconButton(onClick = { sheetContentState = SheetContent.LessonDetails }) {
-                                                Icon(Icons.Default.ArrowBack, contentDescription = "Назад")
+                                                Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Назад")
                                             }
                                             Text(
                                                 text = "Назад к занятию",
