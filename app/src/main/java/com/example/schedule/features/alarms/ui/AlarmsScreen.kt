@@ -45,9 +45,6 @@ fun AlarmsScreen(
         BuildingUtils.KNORINA_GROUPS.size
     }
 
-    val shift1Calls = schedule.filter { it.shift == 1 }
-    val shift2Calls = schedule.filter { it.shift == 2 }
-
     Surface(
         modifier = Modifier.fillMaxSize(),
         color = MaterialTheme.colorScheme.background
@@ -99,36 +96,11 @@ fun AlarmsScreen(
                 contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 100.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                if (selectedBuilding == BuildingId.KAZINTSA) {
-                    // Shift 1
-                    item(key = "shift_1_header") {
-                        ShiftHeader(shiftNumber = 1, title = "1–3 пары")
-                    }
-                    items(
-                        items = shift1Calls,
-                        key = { "shift1_${it.pairNumber}" }
-                    ) { callTime ->
-                        CallItem(lessonNumber = callTime.pairNumber, callTime = callTime)
-                    }
-
-                    // Shift 2
-                    item(key = "shift_2_header") {
-                        Spacer(modifier = Modifier.height(6.dp))
-                        ShiftHeader(shiftNumber = 2, title = "4–7 пары")
-                    }
-                    items(
-                        items = shift2Calls,
-                        key = { "shift2_${it.pairNumber}" }
-                    ) { callTime ->
-                        CallItem(lessonNumber = callTime.pairNumber, callTime = callTime)
-                    }
-                } else {
-                    items(
-                        items = schedule,
-                        key = { "knorina_${it.pairNumber}" }
-                    ) { callTime ->
-                        CallItem(lessonNumber = callTime.pairNumber, callTime = callTime)
-                    }
+                items(
+                    items = schedule,
+                    key = { "call_${it.pairNumber}" }
+                ) { callTime ->
+                    CallItem(lessonNumber = callTime.pairNumber, callTime = callTime)
                 }
 
                 // Expandable Groups Section
@@ -177,36 +149,6 @@ fun BuildingPill(
                 color = if (selected) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
-    }
-}
-
-@Composable
-fun ShiftHeader(shiftNumber: Int, title: String) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(10.dp)
-    ) {
-        Surface(
-            shape = MaterialTheme.shapes.small,
-            color = MaterialTheme.colorScheme.primaryContainer
-        ) {
-            Text(
-                text = "$shiftNumber смена",
-                style = MaterialTheme.typography.labelMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onPrimaryContainer,
-                modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
-            )
-        }
-        Text(
-            text = title,
-            style = MaterialTheme.typography.bodySmall,
-            fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
     }
 }
 
