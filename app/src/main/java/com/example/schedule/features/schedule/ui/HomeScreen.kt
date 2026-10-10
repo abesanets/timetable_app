@@ -106,20 +106,52 @@ fun HomeScreen(
                                     .align(Alignment.Center)
                                     .padding(32.dp),
                                 horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.spacedBy(12.dp)
+                                verticalArrangement = Arrangement.spacedBy(16.dp)
                             ) {
-                                Icon(
-                                    imageVector = Icons.Rounded.Close,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(64.dp),
-                                    tint = MaterialTheme.colorScheme.error
-                                )
-                                Text(
-                                    text = errorMessage ?: "",
-                                    style = MaterialTheme.typography.bodyLarge,
-                                    textAlign = TextAlign.Center,
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
+                                Surface(
+                                    shape = CircleShape,
+                                    color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                                    modifier = Modifier.size(72.dp)
+                                ) {
+                                    Box(contentAlignment = Alignment.Center) {
+                                        Icon(
+                                            imageVector = Icons.Rounded.Warning,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(36.dp),
+                                            tint = MaterialTheme.colorScheme.primary
+                                        )
+                                    }
+                                }
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    Text(
+                                        text = "Не удалось загрузить",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                    Text(
+                                        text = errorMessage ?: "",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        textAlign = TextAlign.Center,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                                FilledTonalButton(
+                                    onClick = { loadSchedule(null) },
+                                    shape = CircleShape,
+                                    contentPadding = PaddingValues(horizontal = 24.dp, vertical = 12.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Rounded.Refresh,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text("Повторить", style = MaterialTheme.typography.labelLarge)
+                                }
                             }
                         }
                         "content" -> {
@@ -206,43 +238,60 @@ fun HomeScreen(
                     .padding(top = 8.dp, start = 16.dp, end = 16.dp)
             ) {
                 Surface(
-                    color = MaterialTheme.colorScheme.errorContainer,
-                    contentColor = MaterialTheme.colorScheme.onErrorContainer,
-                    shape = MaterialTheme.shapes.medium,
+                    color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    contentColor = MaterialTheme.colorScheme.onSurface,
+                    shape = RoundedCornerShape(20.dp),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
                     tonalElevation = 4.dp,
-                    shadowElevation = 4.dp,
+                    shadowElevation = 8.dp,
                     onClick = { isErrorVisible = false }
                 ) {
                     Row(
                         modifier = Modifier
-                            .padding(16.dp)
+                            .padding(horizontal = 16.dp, vertical = 12.dp)
                             .fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        Icon(
-                            imageVector = Icons.Rounded.Warning,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.error
-                        )
+                        Surface(
+                            shape = CircleShape,
+                            color = MaterialTheme.colorScheme.primaryContainer,
+                            modifier = Modifier.size(36.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    imageVector = Icons.Rounded.Warning,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(18.dp),
+                                    tint = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                            }
+                        }
                         Column(modifier = Modifier.weight(1f)) {
-                            val errorTitle = if (groupInput != loadedGroup) "Не удалось найти расписание" else "Ошибка обновления"
+                            val errorTitle = if (groupInput != loadedGroup) "Расписание не найдено" else "Не удалось обновить"
                             Text(
                                 text = errorTitle,
                                 style = MaterialTheme.typography.titleSmall,
                                 fontWeight = FontWeight.Bold
                             )
                             Text(
-                                text = (errorMessage ?: "Не удалось обновить данные") + 
-                                       (if (loadedGroup != null) "\nПоказано последнее загруженное: $loadedGroup" else ""),
-                                style = MaterialTheme.typography.bodySmall
+                                text = (errorMessage ?: "Проверьте подключение к интернету") + 
+                                       (if (loadedGroup != null) " • Показано: $loadedGroup" else ""),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
-                        Icon(
-                            imageVector = Icons.Rounded.Close,
-                            contentDescription = "Скрыть",
-                            modifier = Modifier.size(20.dp)
-                        )
+                        IconButton(
+                            onClick = { isErrorVisible = false },
+                            modifier = Modifier.size(28.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.Close,
+                                contentDescription = "Скрыть",
+                                modifier = Modifier.size(16.dp),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                     }
                 }
             }

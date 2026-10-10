@@ -44,8 +44,7 @@ class WidgetUpdateWorker(
             val filteredSchedule = ScheduleUtils.filterScheduleBySubgroup(schedule, selectedSubgroup)
 
             // 2. Prepare display data
-            val building = com.example.schedule.core.utils.BuildingUtils.getBuildingForGroup(group)
-            val displayIndex = ScheduleUtils.findTodayIndex(filteredSchedule.days, building)
+            val displayIndex = ScheduleUtils.findTodayIndex(filteredSchedule.days)
             var dayLabel = ""
             var daySchedule: com.example.schedule.data.models.DaySchedule? = null
             

@@ -44,11 +44,14 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.example.schedule.data.models.GroupData
 import com.example.schedule.data.models.Schedule
 import com.example.schedule.data.network.*
 import com.example.schedule.data.preferences.PreferencesManager
 import com.example.schedule.features.alarms.ui.AlarmsScreen
 import com.example.schedule.features.schedule.ui.HomeScreen
+import com.example.schedule.features.schedule.ui.components.SearchSuggestion
+import com.example.schedule.features.schedule.ui.components.SearchSuggestionsCard
 import com.example.schedule.features.schedule.utils.ScheduleUtils
 import com.example.schedule.features.settings.ui.SettingsScreen
 import com.example.schedule.features.staff.ui.StaffScreen
@@ -149,16 +152,16 @@ fun ScheduleApp() {
     
     val loadSchedule: (String?) -> Unit = { overrideInput ->
         scope.launch {
-            val targetInput = overrideInput ?: groupInput
-            if (targetInput.isBlank()) return@launch
+            val rawInput = (overrideInput ?: groupInput).trim()
+            if (rawInput.isBlank()) return@launch
             
-            val isNewGroup = targetInput != loadedGroup
+            val isTeacher = (!rawInput.any { it.isDigit() } || rawInput.contains(".")) && !rawInput.matches(Regex("""\d+.*"""))
+            val targetInput = if (isTeacher) rawInput else GroupData.normalizeQuery(rawInput)
             
             isLoading = true
             errorMessage = null
             
             try {
-                val isTeacher = targetInput.contains(".")
                 val html = withContext(Dispatchers.IO) {
                     if (isTeacher) fetcher.fetchTeacherScheduleHtml(targetInput)
                     else fetcher.fetchScheduleHtml(targetInput)
@@ -169,6 +172,9 @@ fun ScheduleApp() {
                 }
                 schedule = parsedSchedule
                 loadedGroup = targetInput
+                if (!isTeacher) {
+                    groupInput = targetInput
+                }
                 preferencesManager.saveLastGroup(targetInput)
                 preferencesManager.saveSchedule(parsedSchedule)
             } catch (e: Exception) {
@@ -230,10 +236,7 @@ fun ScheduleApp() {
                     enterTransition = { fadeIn(tween(400, easing = FastOutSlowInEasing)) },
                     exitTransition = { fadeOut(tween(300, easing = FastOutSlowInEasing)) }
                 ) {
-                    val defaultBuilding = remember(loadedGroup, groupInput) {
-                        com.example.schedule.core.utils.BuildingUtils.getBuildingForGroup(loadedGroup ?: groupInput)
-                    }
-                    AlarmsScreen(initialBuilding = defaultBuilding)
+                    AlarmsScreen()
                 }
                 composable(
                     route = Screen.Staff.route,
@@ -313,24 +316,46 @@ fun ScheduleApp() {
             }
         }
 
-        val allStaffNames = remember { 
+        val allStaffMembers = remember { 
             (StaffData.administration + StaffData.teachers + StaffData.employees)
-                .map { it.fullName }
-                .distinct()
-                .sorted()
+                .distinctBy { it.fullName }
+                .sortedBy { it.fullName }
         }
         
         val suggestions = remember(groupInput) {
-            if (groupInput.length >= 2 && !groupInput.any { it.isDigit() }) {
-                allStaffNames.filter { it.contains(groupInput, ignoreCase = true) }.take(5)
-            } else {
-                emptyList()
+            val query = groupInput.trim()
+            if (query.isEmpty()) return@remember emptyList<SearchSuggestion>()
+            
+            val result = mutableListOf<SearchSuggestion>()
+            
+            val matchedGroups = GroupData.findGroups(query)
+            matchedGroups.take(5).forEach { group ->
+                result.add(SearchSuggestion.Group(group))
             }
+            
+            if (query.any { !it.isDigit() } || result.size < 3) {
+                val matchedTeachers = allStaffMembers.filter { member ->
+                    member.fullName.contains(query, ignoreCase = true) ||
+                    member.position.contains(query, ignoreCase = true)
+                }.take(5 - result.size)
+                
+                matchedTeachers.forEach { teacher ->
+                    result.add(
+                        SearchSuggestion.Teacher(
+                            fullName = teacher.fullName,
+                            shortName = TextUtils.toShortName(teacher.fullName),
+                            position = teacher.position
+                        )
+                    )
+                }
+            }
+            
+            result.take(5)
         }
         
         var showSuggestions by remember { mutableStateOf(false) }
-        LaunchedEffect(suggestions) {
-            showSuggestions = suggestions.isNotEmpty()
+        LaunchedEffect(suggestions, isSearchFocused) {
+            showSuggestions = isSearchFocused && suggestions.isNotEmpty()
         }
 
         val itemWidth = 50.dp
@@ -364,8 +389,36 @@ fun ScheduleApp() {
                 label = "dock_pill_slide"
             )
 
+            // Floating Suggestions Card
+            AnimatedVisibility(
+                visible = isHome && isSearchFocused && showSuggestions && suggestions.isNotEmpty(),
+                enter = fadeIn(tween(180)) + slideInVertically(tween(180)) { it / 3 },
+                exit = fadeOut(tween(120)) + slideOutVertically(tween(120)) { it / 3 },
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 68.dp)
+            ) {
+                SearchSuggestionsCard(
+                    suggestions = suggestions,
+                    onGroupSelected = { group ->
+                        groupInput = group.number
+                        showSuggestions = false
+                        focusManager.clearFocus()
+                        loadSchedule(group.number)
+                    },
+                    onTeacherSelected = { teacher ->
+                        groupInput = teacher.shortName
+                        showSuggestions = false
+                        focusManager.clearFocus()
+                        loadSchedule(teacher.shortName)
+                    },
+                    modifier = Modifier.widthIn(max = maxDockWidth)
+                )
+            }
+
             Surface(
                 modifier = Modifier
+                    .align(Alignment.BottomCenter)
                     .width(dockWidth)
                     .height(58.dp),
                 shape = CircleShape,
@@ -469,28 +522,6 @@ fun ScheduleApp() {
                                                     innerTextField()
                                                 }
                                             )
-
-                                            MaterialTheme(shapes = MaterialTheme.shapes.copy(extraSmall = MaterialTheme.shapes.large)) {
-                                                DropdownMenu(
-                                                    expanded = showSuggestions,
-                                                    onDismissRequest = { showSuggestions = false },
-                                                    modifier = Modifier.widthIn(min = 220.dp, max = 280.dp),
-                                                    properties = PopupProperties(focusable = false)
-                                                ) {
-                                                    suggestions.forEach { name ->
-                                                        DropdownMenuItem(
-                                                            text = { Text(name, style = MaterialTheme.typography.bodyMedium) },
-                                                            onClick = {
-                                                                val shortName = TextUtils.toShortName(name)
-                                                                groupInput = shortName
-                                                                showSuggestions = false
-                                                                focusManager.clearFocus()
-                                                                loadSchedule(shortName)
-                                                            }
-                                                        )
-                                                    }
-                                                }
-                                            }
                                         }
 
                                         if (groupInput.isNotEmpty() && isSearchFocused) {

@@ -31,13 +31,9 @@ fun ScheduleList(
         }
     }
     
-    val building = remember(schedule.group) {
-        BuildingUtils.getBuildingForGroup(schedule.group)
-    }
-
     // Вычисляем индекс активного дня
-    val displayIndex = remember(schedule, refreshTrigger, building) { 
-        ScheduleUtils.findTodayIndex(schedule.days, building) 
+    val displayIndex = remember(schedule, refreshTrigger) { 
+        ScheduleUtils.findTodayIndex(schedule.days) 
     }
     
     // Вычисляем, показываем ли мы "следующий" день

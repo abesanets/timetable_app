@@ -53,7 +53,6 @@ class ScheduleFetcher {
         } catch (e: SocketTimeoutException) {
             throw NoInternetException("Превышено время ожидания. Проверьте подключение к интернету")
         } catch (e: IOException) {
-            if (e is NoInternetException || e is GroupNotFoundException || e is ServerErrorException) throw e
             throw NoInternetException("Ошибка сети. Проверьте подключение к интернету")
         }
     }
@@ -84,7 +83,6 @@ class ScheduleFetcher {
         } catch (e: SocketTimeoutException) {
             throw NoInternetException("Превышено время ожидания. Проверьте подключение к интернету")
         } catch (e: IOException) {
-            if (e is NoInternetException || e is TeacherNotFoundException || e is ServerErrorException) throw e
             throw NoInternetException("Ошибка сети. Проверьте подключение к интернету")
         }
     }

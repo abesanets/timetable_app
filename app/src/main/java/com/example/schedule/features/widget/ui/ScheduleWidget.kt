@@ -417,8 +417,7 @@ suspend fun loadWidgetData(context: Context): WidgetData {
         val filteredSchedule = ScheduleUtils.filterScheduleBySubgroup(schedule, selectedSubgroup)
         val filteredDays = filteredSchedule.days
         
-        val building = com.example.schedule.core.utils.BuildingUtils.getBuildingForGroup(savedGroup)
-        val displayIndex = ScheduleUtils.findTodayIndex(filteredDays, building)
+        val displayIndex = ScheduleUtils.findTodayIndex(filteredDays)
         
         if (displayIndex < 0 || displayIndex >= filteredDays.size) {
             return WidgetData(error = "Нет расписания")

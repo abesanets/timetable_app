@@ -69,13 +69,13 @@ object ScheduleUtils {
         return match?.value ?: dayDate.substringAfter(",").trim()
     }
     
-    fun areClassesFinishedForToday(day: DaySchedule, building: BuildingId = BuildingId.KAZINTSA): Boolean {
+    fun areClassesFinishedForToday(day: DaySchedule, building: BuildingId? = null): Boolean {
         if (day.lessons.isEmpty()) return true
         
         val now = Calendar.getInstance()
         val currentTime = now.get(Calendar.HOUR_OF_DAY) * 60 + now.get(Calendar.MINUTE)
         
-        val schedule = BuildingUtils.getCallSchedule(building)
+        val schedule = BuildingUtils.getCallSchedule()
         
         val lastLesson = day.lessons.maxByOrNull { it.lessonNumber.toIntOrNull() ?: 0 } ?: return true
         val lastLessonNumber = lastLesson.lessonNumber.toIntOrNull() ?: return true
@@ -89,7 +89,7 @@ object ScheduleUtils {
         return currentTime >= (endMinutes + 5)
     }
 
-    fun findTodayIndex(days: List<DaySchedule>, building: BuildingId = BuildingId.KAZINTSA): Int {
+    fun findTodayIndex(days: List<DaySchedule>, building: BuildingId? = null): Int {
         if (days.isEmpty()) return -1
         
         val today = Calendar.getInstance()
@@ -101,7 +101,7 @@ object ScheduleUtils {
         
         if (todayIndex >= 0) {
             val todaySchedule = days[todayIndex]
-            if (areClassesFinishedForToday(todaySchedule, building)) {
+            if (areClassesFinishedForToday(todaySchedule)) {
                 for (i in (todayIndex + 1) until days.size) {
                     if (days[i].lessons.isNotEmpty()) {
                         return i
@@ -166,7 +166,7 @@ object ScheduleUtils {
         return false
     }
 
-    fun getClassesEndTime(days: List<DaySchedule>, building: BuildingId = BuildingId.KAZINTSA): Pair<Int, Int>? {
+    fun getClassesEndTime(days: List<DaySchedule>, building: BuildingId? = null): Pair<Int, Int>? {
         val today = Calendar.getInstance()
         val todayString = dateFormat.format(today.time)
 
@@ -176,7 +176,7 @@ object ScheduleUtils {
 
         if (todaySchedule.lessons.isEmpty()) return null
 
-        val schedule = BuildingUtils.getCallSchedule(building)
+        val schedule = BuildingUtils.getCallSchedule()
 
         val lastLesson = todaySchedule.lessons.maxByOrNull { it.lessonNumber.toIntOrNull() ?: 0 } ?: return null
         val lastLessonNumber = lastLesson.lessonNumber.toIntOrNull() ?: return null

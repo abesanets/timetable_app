@@ -33,11 +33,8 @@ fun LessonDetailsSheet(
     groupName: String? = null,
     onTeacherClick: (StaffMember) -> Unit
 ) {
-    val building = remember(groupName) {
-        BuildingUtils.getBuildingForGroup(groupName)
-    }
-    val callTime = remember(lesson.lessonNumber, building) {
-        BuildingUtils.getCallTime(lesson.lessonNumber, building)
+    val callTime = remember(lesson.lessonNumber) {
+        BuildingUtils.getCallTime(lesson.lessonNumber)
     }
 
     Column(
