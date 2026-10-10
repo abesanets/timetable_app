@@ -6,16 +6,22 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -216,76 +222,137 @@ fun ScheduleApp() {
             }
         }
 
-        // Gradient overlay for better dock legibility
+        // Gradient overlay for dock legibility without harsh cutoff
         Box(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
-                .height(120.dp)
+                .height(72.dp)
                 .background(
                     androidx.compose.ui.graphics.Brush.verticalGradient(
                         colors = listOf(
                             Color.Transparent,
-                            MaterialTheme.colorScheme.background.copy(alpha = 0.7f),
-                            MaterialTheme.colorScheme.background
+                            MaterialTheme.colorScheme.background.copy(alpha = 0.6f),
+                            MaterialTheme.colorScheme.background.copy(alpha = 0.95f)
                         )
                     )
                 )
         )
 
-        // Floating Dock Bar
+        // Floating Dock Bar with sliding pill & Lucide outline icons
+        val screens = remember { listOf(Screen.Home, Screen.Alarms, Screen.Staff, Screen.Settings) }
+        val navBackStackEntry by navController.currentBackStackEntryAsState()
+        val currentDestination = navBackStackEntry?.destination
+        val selectedIndex = remember(currentDestination) {
+            val idx = screens.indexOfFirst { screen ->
+                currentDestination?.hierarchy?.any { it.route == screen.route } == true
+            }
+            if (idx >= 0) idx else 0
+        }
+
+        val itemWidth = 52.dp
+        val itemHeight = 44.dp
+        val itemSpacing = 6.dp
+
+        val pillOffset by animateDpAsState(
+            targetValue = (itemWidth + itemSpacing) * selectedIndex,
+            animationSpec = spring(
+                dampingRatio = Spring.DampingRatioMediumBouncy,
+                stiffness = Spring.StiffnessLow
+            ),
+            label = "dock_pill_slide"
+        )
+
         Surface(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
-                .padding(horizontal = 16.dp)
-                .padding(bottom = 16.dp)
+                .padding(bottom = 8.dp)
                 .navigationBarsPadding()
-                .height(64.dp) // Компактная высота для иконок
+                .height(58.dp)
                 .wrapContentWidth(),
-            shape = MaterialTheme.shapes.extraLarge,
+            shape = CircleShape,
             color = MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.98f),
-            tonalElevation = 6.dp,
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)),
+            tonalElevation = 2.dp,
             shadowElevation = 8.dp
         ) {
-            Row(
+            Box(
                 modifier = Modifier
-                    .padding(horizontal = 8.dp)
-                    .fillMaxHeight(),
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
-                verticalAlignment = Alignment.CenterVertically
+                    .padding(horizontal = 8.dp, vertical = 7.dp)
+                    .wrapContentSize(),
+                contentAlignment = Alignment.CenterStart
             ) {
-                val navBackStackEntry by navController.currentBackStackEntryAsState()
-                val currentDestination = navBackStackEntry?.destination
-                
-                listOf(Screen.Home, Screen.Alarms, Screen.Staff, Screen.Settings).forEach { screen ->
-                    val selected = currentDestination?.hierarchy?.any { it.route == screen.route } == true
-                    
-                    Box(
-                        modifier = Modifier
-                            .size(48.dp) // Квадратная область для симметрии
-                            .clip(MaterialTheme.shapes.extraLarge)
-                            .background(
-                                if (selected) MaterialTheme.colorScheme.secondaryContainer 
-                                else Color.Transparent
-                            )
-                            .clickable {
-                                navController.navigate(screen.route) {
-                                    popUpTo(navController.graph.findStartDestination().id) {
-                                        saveState = true
-                                    }
-                                    launchSingleTop = true
-                                    restoreState = true
-                                }
-                            },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = if (selected) screen.iconSelected else screen.icon,
-                            contentDescription = screen.title,
-                            modifier = Modifier.size(26.dp), // Чуть крупнее иконки, раз нет текста
-                            tint = if (selected) MaterialTheme.colorScheme.onSecondaryContainer 
-                                   else MaterialTheme.colorScheme.onSurfaceVariant
+                // Animated sliding background pill
+                Box(
+                    modifier = Modifier
+                        .offset(x = pillOffset)
+                        .size(width = itemWidth, height = itemHeight)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.secondaryContainer)
+                )
+
+                // Navigation items
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(itemSpacing),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    screens.forEachIndexed { index, screen ->
+                        val isSelected = index == selectedIndex
+                        val interactionSource = remember { MutableInteractionSource() }
+                        val isPressed by interactionSource.collectIsPressedAsState()
+
+                        val iconScale by animateFloatAsState(
+                            targetValue = if (isPressed) 0.82f else if (isSelected) 1.05f else 1.0f,
+                            animationSpec = spring(
+                                dampingRatio = Spring.DampingRatioMediumBouncy,
+                                stiffness = Spring.StiffnessMedium
+                            ),
+                            label = "nav_icon_scale"
                         )
+
+                        val iconColor by animateColorAsState(
+                            targetValue = if (isSelected) {
+                                MaterialTheme.colorScheme.onSecondaryContainer
+                            } else {
+                                MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f)
+                            },
+                            animationSpec = tween(durationMillis = 180),
+                            label = "nav_icon_tint"
+                        )
+
+                        Box(
+                            modifier = Modifier
+                                .size(width = itemWidth, height = itemHeight)
+                                .clip(CircleShape)
+                                .clickable(
+                                    interactionSource = interactionSource,
+                                    indication = null,
+                                    onClick = {
+                                        if (!isSelected) {
+                                            navController.navigate(screen.route) {
+                                                popUpTo(navController.graph.findStartDestination().id) {
+                                                    saveState = true
+                                                }
+                                                launchSingleTop = true
+                                                restoreState = true
+                                            }
+                                        }
+                                    }
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                painter = painterResource(screen.iconRes),
+                                contentDescription = screen.title,
+                                modifier = Modifier
+                                    .size(24.dp)
+                                    .graphicsLayer {
+                                        scaleX = iconScale
+                                        scaleY = iconScale
+                                    },
+                                tint = iconColor
+                            )
+                        }
                     }
                 }
             }

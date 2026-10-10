@@ -1,15 +1,15 @@
 package com.example.schedule.ui.navigation
 
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Home
-import androidx.compose.material.icons.rounded.Notifications
-import androidx.compose.material.icons.rounded.Person
-import androidx.compose.material.icons.rounded.Settings
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.annotation.DrawableRes
+import com.example.schedule.R
 
-sealed class Screen(val route: String, val title: String, val icon: ImageVector, val iconSelected: ImageVector) {
-    object Home : Screen("home", "Расписание", Icons.Rounded.Home, Icons.Rounded.Home)
-    object Alarms : Screen("alarms", "Звонки", Icons.Rounded.Notifications, Icons.Rounded.Notifications)
-    object Staff : Screen("staff", "Сотрудники", Icons.Rounded.Person, Icons.Rounded.Person)
-    object Settings : Screen("settings", "Настройки", Icons.Rounded.Settings, Icons.Rounded.Settings)
+sealed class Screen(
+    val route: String,
+    val title: String,
+    @field:DrawableRes val iconRes: Int
+) {
+    object Home : Screen("home", "Расписание", R.drawable.ic_nav_calendar)
+    object Alarms : Screen("alarms", "Звонки", R.drawable.ic_nav_bell)
+    object Staff : Screen("staff", "Сотрудники", R.drawable.ic_nav_users)
+    object Settings : Screen("settings", "Настройки", R.drawable.ic_nav_settings)
 }

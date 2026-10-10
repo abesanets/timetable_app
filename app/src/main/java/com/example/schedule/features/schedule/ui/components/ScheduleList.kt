@@ -67,10 +67,18 @@ fun ScheduleList(
         }
     }
     
+    val statusBarTop = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+    val navBarBottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+
     LazyColumn(
         state = listState,
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 24.dp, bottom = 100.dp),
+        contentPadding = PaddingValues(
+            start = 16.dp,
+            end = 16.dp,
+            top = statusBarTop + 72.dp,
+            bottom = navBarBottom + 76.dp
+        ),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         itemsIndexed(
