@@ -12,3 +12,5 @@
 # Keep models from obfuscation (crucial for Gson)
 -keep class com.example.schedule.data.models.** { *; }
 -keepclassmembers class com.example.schedule.data.models.** { *; }
+-keep class com.example.schedule.features.update.data.** { *; }
+-keepclassmembers class com.example.schedule.features.update.data.** { *; }

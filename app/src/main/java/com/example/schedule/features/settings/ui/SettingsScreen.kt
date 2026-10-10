@@ -21,8 +21,15 @@ import com.example.schedule.features.widget.ui.ScheduleWidgetReceiver
 import com.example.schedule.features.widget.worker.WidgetUpdateScheduler
 import kotlinx.coroutines.launch
 
+import android.widget.Toast
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.res.painterResource
+import com.example.schedule.BuildConfig
+import com.example.schedule.R
+import com.example.schedule.features.update.data.AppUpdateInfo
+import com.example.schedule.features.update.data.UpdateManager
+import com.example.schedule.features.update.ui.UpdateBottomSheet
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -31,6 +38,9 @@ fun SettingsScreen() {
     val preferencesManager = remember { PreferencesManager(context) }
     
     val scope = rememberCoroutineScope()
+    val updateManager = remember { UpdateManager(context) }
+    var isCheckingUpdate by remember { mutableStateOf(false) }
+    var availableUpdate by remember { mutableStateOf<AppUpdateInfo?>(null) }
     
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -303,6 +313,80 @@ fun SettingsScreen() {
                     }
                 }
                 
+                // Проверка обновлений
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = MaterialTheme.shapes.large,
+                    color = MaterialTheme.colorScheme.surfaceContainer
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable(enabled = !isCheckingUpdate) {
+                                isCheckingUpdate = true
+                                scope.launch {
+                                    val result = updateManager.checkForUpdate(BuildConfig.VERSION_NAME)
+                                    isCheckingUpdate = false
+                                    result.fold(
+                                        onSuccess = { updateInfo ->
+                                            if (updateInfo != null) {
+                                                availableUpdate = updateInfo
+                                            } else {
+                                                Toast.makeText(
+                                                    context,
+                                                    "У вас установлена последняя версия (v${BuildConfig.VERSION_NAME})",
+                                                    Toast.LENGTH_SHORT
+                                                ).show()
+                                            }
+                                        },
+                                        onFailure = { error ->
+                                            Toast.makeText(
+                                                context,
+                                                "Не удалось проверить обновления: ${error.localizedMessage ?: "ошибка сети"}",
+                                                Toast.LENGTH_SHORT
+                                            ).show()
+                                        }
+                                    )
+                                }
+                            }
+                            .padding(horizontal = 16.dp, vertical = 14.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(
+                            modifier = Modifier.weight(1f),
+                            verticalArrangement = Arrangement.spacedBy(2.dp)
+                        ) {
+                            Text(
+                                text = "Проверить обновления",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Text(
+                                text = "Текущая версия: v${BuildConfig.VERSION_NAME}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+
+                        if (isCheckingUpdate) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(24.dp),
+                                strokeWidth = 2.dp,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        } else {
+                            Icon(
+                                painter = painterResource(id = R.drawable.ic_nav_refresh),
+                                contentDescription = "Проверить обновления",
+                                tint = MaterialTheme.colorScheme.secondary,
+                                modifier = Modifier.size(22.dp)
+                            )
+                        }
+                    }
+                }
+                
                 if (showIntervalDialog) {
                     AlertDialog(
                         onDismissRequest = { showIntervalDialog = false },
@@ -349,6 +433,14 @@ fun SettingsScreen() {
                                 Text("Отмена")
                             }
                         }
+                    )
+                }
+
+                availableUpdate?.let { updateInfo ->
+                    UpdateBottomSheet(
+                        updateInfo = updateInfo,
+                        currentVersionName = BuildConfig.VERSION_NAME,
+                        onDismiss = { availableUpdate = null }
                     )
                 }
             }

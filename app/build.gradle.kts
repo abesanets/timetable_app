@@ -12,8 +12,8 @@ android {
         applicationId = "com.example.schedule"
         minSdk = 24
         targetSdk = 34
-        versionCode = 9
-        versionName = "4.5"
+        versionCode = 10
+        versionName = "4.6"
     }
 
     signingConfigs {
@@ -33,6 +33,7 @@ android {
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
         debug {
+            signingConfig = signingConfigs.getByName("release")
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
@@ -50,6 +51,7 @@ android {
     
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 
@@ -85,4 +87,7 @@ dependencies {
     
     // Gson для сериализации данных
     implementation("com.google.code.gson:gson:2.10.1")
+    
+    // Тестирование
+    testImplementation("junit:junit:4.13.2")
 }

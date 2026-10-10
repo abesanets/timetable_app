@@ -26,6 +26,8 @@ class PreferencesManager(private val context: Context) {
         private val SELECTED_SUBGROUP_KEY = intPreferencesKey("selected_subgroup")
         private val SHOW_OTHER_SUBGROUP_IN_DETAILS_KEY = booleanPreferencesKey("show_other_subgroup_in_details")
         private val WIDGET_UPDATE_INTERVAL_KEY = longPreferencesKey("widget_update_interval")
+        private val LAST_UPDATE_CHECK_KEY = longPreferencesKey("last_update_check_time")
+        private val DISMISSED_UPDATE_VERSION_KEY = stringPreferencesKey("dismissed_update_version")
     }
     
     val lastGroup: Flow<String?> = context.dataStore.data
@@ -58,6 +60,16 @@ class PreferencesManager(private val context: Context) {
         .map { preferences ->
             preferences[WIDGET_UPDATE_INTERVAL_KEY] ?: 60L
         }
+
+    val lastUpdateCheckTime: Flow<Long> = context.dataStore.data
+        .map { preferences ->
+            preferences[LAST_UPDATE_CHECK_KEY] ?: 0L
+        }
+
+    val dismissedUpdateVersion: Flow<String?> = context.dataStore.data
+        .map { preferences ->
+            preferences[DISMISSED_UPDATE_VERSION_KEY]
+        }
     
     suspend fun saveLastGroup(group: String) {
         context.dataStore.edit { preferences ->
@@ -86,6 +98,22 @@ class PreferencesManager(private val context: Context) {
     suspend fun setWidgetUpdateInterval(interval: Long) {
         context.dataStore.edit { preferences ->
             preferences[WIDGET_UPDATE_INTERVAL_KEY] = interval
+        }
+    }
+
+    suspend fun setLastUpdateCheckTime(timestamp: Long) {
+        context.dataStore.edit { preferences ->
+            preferences[LAST_UPDATE_CHECK_KEY] = timestamp
+        }
+    }
+
+    suspend fun setDismissedUpdateVersion(version: String?) {
+        context.dataStore.edit { preferences ->
+            if (version != null) {
+                preferences[DISMISSED_UPDATE_VERSION_KEY] = version
+            } else {
+                preferences.remove(DISMISSED_UPDATE_VERSION_KEY)
+            }
         }
     }
 }

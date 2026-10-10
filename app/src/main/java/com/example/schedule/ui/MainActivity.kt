@@ -55,6 +55,10 @@ import com.example.schedule.features.staff.ui.StaffScreen
 import com.example.schedule.features.widget.ui.ScheduleWidget
 import com.example.schedule.ui.navigation.Screen
 import com.example.schedule.ui.theme.MaterialYouTheme
+import com.example.schedule.BuildConfig
+import com.example.schedule.features.update.data.AppUpdateInfo
+import com.example.schedule.features.update.data.UpdateManager
+import com.example.schedule.features.update.ui.UpdateBottomSheet
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -97,6 +101,29 @@ fun ScheduleApp() {
     val filteredSchedule = remember(schedule, selectedSubgroup) {
         schedule?.let { s ->
             ScheduleUtils.filterScheduleBySubgroup(s, selectedSubgroup)
+        }
+    }
+
+    val updateManager = remember { UpdateManager(context) }
+    var autoUpdateInfo by remember { mutableStateOf<AppUpdateInfo?>(null) }
+
+    LaunchedEffect(Unit) {
+        try {
+            val lastCheck = preferencesManager.lastUpdateCheckTime.first()
+            val dismissedVersion = preferencesManager.dismissedUpdateVersion.first()
+            val currentTime = System.currentTimeMillis()
+            // Проверяем раз в 12 часов при запуске
+            if (currentTime - lastCheck > 12 * 60 * 60 * 1000L) {
+                val result = updateManager.checkForUpdate(BuildConfig.VERSION_NAME)
+                preferencesManager.setLastUpdateCheckTime(currentTime)
+                result.getOrNull()?.let { updateInfo ->
+                    if (updateInfo.versionName != dismissedVersion) {
+                        autoUpdateInfo = updateInfo
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            // Тихо игнорируем фоновую ошибку проверки обновлений
         }
     }
 
@@ -668,6 +695,19 @@ fun ScheduleApp() {
                     }
                 }
             }
+        }
+
+        autoUpdateInfo?.let { updateInfo ->
+            UpdateBottomSheet(
+                updateInfo = updateInfo,
+                currentVersionName = BuildConfig.VERSION_NAME,
+                onDismiss = {
+                    scope.launch {
+                        preferencesManager.setDismissedUpdateVersion(updateInfo.versionName)
+                    }
+                    autoUpdateInfo = null
+                }
+            )
         }
     }
 }
