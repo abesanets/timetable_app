@@ -98,8 +98,7 @@ fun StaffScreen(
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.surface,
                     titleContentColor = MaterialTheme.colorScheme.onSurface
-                ),
-                modifier = Modifier.statusBarsPadding()
+                )
             )
             
             Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {

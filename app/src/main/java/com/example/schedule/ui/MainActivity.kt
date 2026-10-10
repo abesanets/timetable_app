@@ -149,6 +149,7 @@ fun ScheduleApp() {
     Box(modifier = Modifier.fillMaxSize()) {
         Scaffold(
             containerColor = MaterialTheme.colorScheme.background,
+            contentWindowInsets = WindowInsets(0, 0, 0, 0)
         ) { paddingValues ->
             NavHost(
                 navController = navController,
