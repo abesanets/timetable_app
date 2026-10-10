@@ -73,11 +73,12 @@ fun ScheduleList(
     LazyColumn(
         state = listState,
         modifier = Modifier.fillMaxSize(),
+        reverseLayout = true,
         contentPadding = PaddingValues(
             start = 16.dp,
             end = 16.dp,
-            top = statusBarTop + 72.dp,
-            bottom = navBarBottom + 76.dp
+            top = statusBarTop + 12.dp,
+            bottom = navBarBottom + 80.dp
         ),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {

@@ -70,28 +70,6 @@ fun HomeScreen(
     
     var isErrorVisible by remember(errorMessage) { mutableStateOf(errorMessage != null) }
 
-    val focusManager = LocalFocusManager.current
-
-    val allStaffNames = remember { 
-        (StaffData.administration + StaffData.teachers + StaffData.employees)
-            .map { it.fullName }
-            .distinct()
-            .sorted()
-    }
-    
-    val suggestions = remember(groupInput) {
-        if (groupInput.length >= 2 && !groupInput.any { it.isDigit() }) {
-            allStaffNames.filter { it.contains(groupInput, ignoreCase = true) }.take(5)
-        } else {
-            emptyList()
-        }
-    }
-    
-    var showSuggestions by remember { mutableStateOf(false) }
-    LaunchedEffect(suggestions) {
-        showSuggestions = suggestions.isNotEmpty()
-    }
-
     Surface(
         modifier = Modifier.fillMaxSize(),
         color = MaterialTheme.colorScheme.background
@@ -200,167 +178,23 @@ fun HomeScreen(
                 }
             }
 
-            // Mirrored top gradient overlay behind floating search island
+            // Subtle top fade overlay behind status bar
             val statusBarTop = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
             Box(
                 modifier = Modifier
                     .align(Alignment.TopCenter)
                     .fillMaxWidth()
-                    .height(statusBarTop + 76.dp)
+                    .height(statusBarTop + 8.dp)
                     .background(
                         Brush.verticalGradient(
                             colors = listOf(
-                                MaterialTheme.colorScheme.background.copy(alpha = 0.95f),
-                                MaterialTheme.colorScheme.background.copy(alpha = 0.6f),
+                                MaterialTheme.colorScheme.background,
+                                MaterialTheme.colorScheme.background.copy(alpha = 0.85f),
                                 Color.Transparent
                             )
                         )
                     )
             )
-
-            var isSearchFocused by remember { mutableStateOf(false) }
-
-            // Floating Top Search Island (exact match to bottom dock bar dimensions)
-            Surface(
-                modifier = Modifier
-                    .align(Alignment.TopCenter)
-                    .statusBarsPadding()
-                    .padding(top = 8.dp)
-                    .width(242.dp)
-                    .height(58.dp),
-                shape = CircleShape,
-                color = MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.98f),
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)),
-                tonalElevation = 2.dp,
-                shadowElevation = 8.dp
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(start = 18.dp, end = 7.dp, top = 7.dp, bottom = 7.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Box(modifier = Modifier.weight(1f)) {
-                        BasicTextField(
-                            value = groupInput,
-                            onValueChange = onGroupInputChange,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .onFocusChanged { isSearchFocused = it.isFocused },
-                            enabled = !isLoading,
-                            singleLine = true,
-                            textStyle = MaterialTheme.typography.bodyLarge.copy(
-                                color = MaterialTheme.colorScheme.onSurface,
-                                fontWeight = FontWeight.SemiBold
-                            ),
-                            cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
-                            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                            keyboardActions = KeyboardActions(
-                                onSearch = {
-                                    focusManager.clearFocus()
-                                    loadSchedule(null)
-                                }
-                            ),
-                            decorationBox = { innerTextField ->
-                                if (groupInput.isEmpty()) {
-                                    Text(
-                                        "Группа или фио",
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-                                    )
-                                }
-                                innerTextField()
-                            }
-                        )
-
-                        MaterialTheme(shapes = MaterialTheme.shapes.copy(extraSmall = MaterialTheme.shapes.large)) {
-                            DropdownMenu(
-                                expanded = showSuggestions,
-                                onDismissRequest = { showSuggestions = false },
-                                modifier = Modifier.width(220.dp),
-                                properties = PopupProperties(focusable = false)
-                            ) {
-                                suggestions.forEach { name ->
-                                    DropdownMenuItem(
-                                        text = { Text(name, style = MaterialTheme.typography.bodyMedium) },
-                                        onClick = {
-                                            val shortName = TextUtils.toShortName(name)
-                                            onGroupInputChange(shortName)
-                                            showSuggestions = false
-                                            focusManager.clearFocus()
-                                            loadSchedule(shortName)
-                                        }
-                                    )
-                                }
-                            }
-                        }
-                    }
-
-                    if (isSearchFocused && groupInput.isNotEmpty()) {
-                        IconButton(
-                            onClick = { onGroupInputChange("") },
-                            modifier = Modifier.size(32.dp)
-                        ) {
-                            Icon(
-                                Icons.Rounded.Clear,
-                                contentDescription = "Очистить",
-                                modifier = Modifier.size(16.dp),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-
-                    val isSearch = groupInput != loadedGroup
-                    val interactionSource = remember { MutableInteractionSource() }
-                    val isPressed by interactionSource.collectIsPressedAsState()
-                    val btnScale by animateFloatAsState(
-                        targetValue = if (isPressed) 0.86f else 1.0f,
-                        animationSpec = spring(
-                            dampingRatio = Spring.DampingRatioMediumBouncy,
-                            stiffness = Spring.StiffnessMedium
-                        ),
-                        label = "refresh_btn_scale"
-                    )
-
-                    Box(
-                        modifier = Modifier
-                            .size(44.dp)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.secondaryContainer)
-                            .clickable(
-                                interactionSource = interactionSource,
-                                indication = null,
-                                enabled = !isLoading && groupInput.isNotBlank(),
-                                onClick = {
-                                    focusManager.clearFocus()
-                                    loadSchedule(null)
-                                }
-                            )
-                            .graphicsLayer {
-                                scaleX = btnScale
-                                scaleY = btnScale
-                            },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        if (isLoading) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(20.dp),
-                                strokeWidth = 2.5.dp,
-                                color = MaterialTheme.colorScheme.onSecondaryContainer
-                            )
-                        } else {
-                            Icon(
-                                painter = painterResource(
-                                    if (isSearch) R.drawable.ic_nav_search else R.drawable.ic_nav_refresh
-                                ),
-                                contentDescription = if (isSearch) "Поиск" else "Обновить",
-                                modifier = Modifier.size(20.dp),
-                                tint = MaterialTheme.colorScheme.onSecondaryContainer
-                            )
-                        }
-                    }
-                }
-            }
 
             AnimatedVisibility(
                 visible = isErrorVisible && schedule != null,
@@ -369,7 +203,7 @@ fun HomeScreen(
                 modifier = Modifier
                     .align(Alignment.TopCenter)
                     .statusBarsPadding()
-                    .padding(top = 70.dp, start = 16.dp, end = 16.dp)
+                    .padding(top = 8.dp, start = 16.dp, end = 16.dp)
             ) {
                 Surface(
                     color = MaterialTheme.colorScheme.errorContainer,
@@ -413,49 +247,6 @@ fun HomeScreen(
                 }
             }
 
-            if (isLoading && schedule != null) {
-                Box(
-                    modifier = Modifier
-                        .statusBarsPadding()
-                        .padding(top = 66.dp, start = 32.dp, end = 32.dp)
-                        .fillMaxWidth()
-                        .height(3.dp)
-                        .align(Alignment.TopCenter)
-                        .clip(CircleShape)
-                ) {
-                    val infiniteTransition = rememberInfiniteTransition(label = "loading_line")
-                    val offset by infiniteTransition.animateFloat(
-                        initialValue = -0.5f,
-                        targetValue = 1.5f,
-                        animationSpec = infiniteRepeatable(
-                            animation = tween(1500, easing = LinearEasing),
-                            repeatMode = RepeatMode.Restart
-                        ),
-                        label = "offset"
-                    )
-
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth(0.4f)
-                            .fillMaxHeight()
-                            .align(Alignment.CenterStart)
-                            .graphicsLayer { 
-                                this.translationX = offset * this.size.width 
-                            }
-                            .background(
-                                Brush.horizontalGradient(
-                                    colors = listOf(
-                                        Color.Transparent,
-                                        MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
-                                        MaterialTheme.colorScheme.primary,
-                                        MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
-                                        Color.Transparent
-                                    )
-                                )
-                            )
-                    )
-                }
-            }
         }
 
         if (showBottomSheet) {
@@ -466,7 +257,8 @@ fun HomeScreen(
                 sheetState = sheetState,
                 containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
                 dragHandle = { BottomSheetDefaults.DragHandle() },
-                shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
+                shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
+                windowInsets = WindowInsets(0, 0, 0, 0)
             ) {
                 Box(modifier = Modifier
                     .fillMaxWidth()

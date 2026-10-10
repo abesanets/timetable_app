@@ -45,7 +45,8 @@ fun LessonDetailsSheet(
             .fillMaxWidth()
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 24.dp)
-            .padding(bottom = 48.dp, top = 8.dp),
+            .navigationBarsPadding()
+            .padding(bottom = 24.dp, top = 8.dp),
         verticalArrangement = Arrangement.spacedBy(20.dp)
     ) {
         Text(

@@ -272,7 +272,8 @@ fun StaffScreen(
                 sheetState = sheetState,
                 containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
                 dragHandle = { BottomSheetDefaults.DragHandle() },
-                shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
+                shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
+                windowInsets = WindowInsets(0, 0, 0, 0)
             ) {
                 Box(modifier = Modifier
                     .fillMaxWidth()
@@ -411,7 +412,8 @@ fun StaffDetailContent(
             .fillMaxWidth()
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 24.dp)
-            .padding(bottom = 48.dp, top = 8.dp),
+            .navigationBarsPadding()
+            .padding(bottom = 24.dp, top = 8.dp),
         verticalArrangement = Arrangement.spacedBy(20.dp)
     ) {
         Text(
