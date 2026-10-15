@@ -77,17 +77,17 @@ fun ScheduleList(
                 var contentHeight = 0.dp
                 for (i in displayIndex until schedule.days.size) {
                     val day = schedule.days[i]
-                    var dayHeight = 56.dp
+                    var dayHeight = 36.dp
                     if (day.lessons.isNotEmpty()) {
-                        dayHeight += 8.dp
+                        dayHeight += 6.dp
                         day.lessons.forEachIndexed { index, lesson ->
-                            val itemHeight = if (lesson.subgroups.size > 1) 76.dp else 66.dp
+                            val itemHeight = if (lesson.subgroups.size > 1) 76.dp else 64.dp
                             dayHeight += itemHeight
                             if (index > 0) dayHeight += 6.dp
                         }
                     }
                     contentHeight += dayHeight
-                    if (i > displayIndex) contentHeight += 8.dp
+                    if (i > displayIndex) contentHeight += 16.dp
                 }
                 maxOf(0.dp, availableHeight - contentHeight)
             }
@@ -103,7 +103,7 @@ fun ScheduleList(
                 top = topPadding,
                 bottom = bottomPadding
             ),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             itemsIndexed(
                 items = schedule.days,

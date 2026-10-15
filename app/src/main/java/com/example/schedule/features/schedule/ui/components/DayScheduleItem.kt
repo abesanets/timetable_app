@@ -63,55 +63,55 @@ fun DayScheduleItem(
         }
     }
 
-    Surface(
+    Column(
         modifier = modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.large,
-        color = if (isToday || isNext)
-            MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f)
-        else
-            MaterialTheme.colorScheme.surfaceContainerLow,
-        tonalElevation = 0.dp
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        Column(
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+                .padding(horizontal = 4.dp, vertical = 2.dp)
         ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Text(
-                    text = day.dayDate,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier
-                        .weight(1f)
-                        .padding(start = 4.dp, top = 4.dp, bottom = 4.dp)
-                )
-                
-                statusLabel?.let { label ->
+            Text(
+                text = day.dayDate,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = if (isToday) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.weight(1f)
+            )
+            
+            statusLabel?.let { label ->
+                Surface(
+                    shape = CircleShape,
+                    color = if (isToday)
+                        MaterialTheme.colorScheme.primaryContainer
+                    else
+                        MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.6f)
+                ) {
                     Text(
                         text = label,
-                        style = MaterialTheme.typography.labelLarge,
+                        style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.padding(horizontal = 4.dp)
+                        color = if (isToday)
+                            MaterialTheme.colorScheme.onPrimaryContainer
+                        else
+                            MaterialTheme.colorScheme.onSecondaryContainer,
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
                     )
                 }
             }
+        }
 
-            if (day.lessons.isNotEmpty()) {
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    day.lessons.asReversed().forEach { lesson ->
-                        LessonItem(
-                            lesson = lesson, 
-                            isHighlighted = isToday || isNext,
-                            onClick = { onLessonClick(lesson) }
-                        )
-                    }
+        if (day.lessons.isNotEmpty()) {
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                day.lessons.asReversed().forEach { lesson ->
+                    LessonItem(
+                        lesson = lesson, 
+                        isHighlighted = isToday || isNext,
+                        onClick = { onLessonClick(lesson) }
+                    )
                 }
             }
         }
