@@ -69,64 +69,77 @@ class ScheduleParser {
     fun parseTeacherSchedule(html: String, teacherName: String): Schedule {
         val doc = Jsoup.parse(html)
         val headerRegex = Regex("Преподаватель\\s*-\\s*${Regex.escape(teacherName)}", RegexOption.IGNORE_CASE)
-        val teacherHeader = doc.getElementsMatchingOwnText(headerRegex.toPattern()).firstOrNull()
-            ?: doc.getElementsContainingOwnText(teacherName).firstOrNull()
+        val matchedHeaders = doc.getElementsMatchingOwnText(headerRegex.toPattern())
+        val teacherHeaders = if (matchedHeaders.isNotEmpty()) {
+            matchedHeaders
+        } else {
+            doc.getElementsContainingOwnText(teacherName)
+        }
             
-        if (teacherHeader == null) {
+        if (teacherHeaders.isEmpty()) {
             throw TeacherNotFoundException("Преподаватель $teacherName не найден")
         }
         
-        val table = findTableForGroup(teacherHeader)
-            ?: throw TeacherNotFoundException("Таблица расписания для $teacherName не найдена")
+        val allDaysSchedule = mutableListOf<DaySchedule>()
+        val processedTables = mutableSetOf<Element>()
         
-        val rows = table.select("tr")
-        if (rows.size < 2) {
+        teacherHeaders.forEach { teacherHeader ->
+            val table = findTableForGroup(teacherHeader) ?: return@forEach
+            if (!processedTables.add(table)) return@forEach
+            
+            val rows = table.select("tr")
+            if (rows.size < 2) return@forEach
+            
+            val dayHeaders = parseDayHeaders(rows[0])
+            val daysSchedule = dayHeaders.map { DaySchedule(it, mutableListOf()) }
+            
+            for (i in 2 until rows.size) {
+                val row = rows[i]
+                val allCells = row.children()
+                if (allCells.isEmpty()) continue
+
+                var lessonNumber = (i - 1).toString()
+                val dataCells: List<Element>
+
+                val firstText = allCells[0].text().replace('\u00a0', ' ').trim()
+                val numMatch = Regex("""\d+""").find(firstText)
+                if (numMatch != null) {
+                    lessonNumber = numMatch.value
+                    dataCells = allCells.subList(1, allCells.size)
+                } else {
+                    dataCells = row.select("td")
+                }
+
+                val expandedCells = expandRow(dataCells)
+                
+                var dayIndex = 0
+                var cellIndex = 0
+                
+                while (cellIndex < expandedCells.size - 1 && dayIndex < daysSchedule.size) {
+                    val subject = expandedCells.getOrNull(cellIndex)?.replace('\u00a0', ' ')?.trim() ?: ""
+                    val room = expandedCells.getOrNull(cellIndex + 1)?.replace('\u00a0', ' ')?.trim() ?: ""
+                    
+                    if (isValidLesson(subject)) {
+                        val lesson = Lesson(
+                            lessonNumber = lessonNumber,
+                            subgroups = listOf(Subgroup(subject = subject, room = room))
+                        )
+                        (daysSchedule[dayIndex].lessons as MutableList).add(lesson)
+                    }
+                    
+                    cellIndex += 2
+                    dayIndex++
+                }
+            }
+
+            allDaysSchedule.addAll(daysSchedule)
+        }
+        
+        if (allDaysSchedule.isEmpty()) {
             throw TeacherNotFoundException("Расписание для $teacherName пустое")
         }
         
-        val dayHeaders = parseDayHeaders(rows[0])
-        val daysSchedule = dayHeaders.map { DaySchedule(it, mutableListOf()) }
-        
-        for (i in 2 until rows.size) {
-            val row = rows[i]
-            val allCells = row.children()
-            if (allCells.isEmpty()) continue
-
-            var lessonNumber = (i - 1).toString()
-            val dataCells: List<Element>
-
-            val firstText = allCells[0].text().replace('\u00a0', ' ').trim()
-            val numMatch = Regex("""\d+""").find(firstText)
-            if (numMatch != null) {
-                lessonNumber = numMatch.value
-                dataCells = allCells.subList(1, allCells.size)
-            } else {
-                dataCells = row.select("td")
-            }
-
-            val expandedCells = expandRow(dataCells)
-            
-            var dayIndex = 0
-            var cellIndex = 0
-            
-            while (cellIndex < expandedCells.size - 1 && dayIndex < daysSchedule.size) {
-                val subject = expandedCells.getOrNull(cellIndex)?.replace('\u00a0', ' ')?.trim() ?: ""
-                val room = expandedCells.getOrNull(cellIndex + 1)?.replace('\u00a0', ' ')?.trim() ?: ""
-                
-                if (isValidLesson(subject)) {
-                    val lesson = Lesson(
-                        lessonNumber = lessonNumber,
-                        subgroups = listOf(Subgroup(subject = subject, room = room))
-                    )
-                    (daysSchedule[dayIndex].lessons as MutableList).add(lesson)
-                }
-                
-                cellIndex += 2
-                dayIndex++
-            }
-        }
-        
-        return Schedule(group = teacherName, days = daysSchedule)
+        return Schedule(group = teacherName, days = allDaysSchedule)
     }
 
     private fun findTableForGroup(groupText: Element): Element? {
