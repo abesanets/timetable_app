@@ -10,8 +10,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.schedule.data.models.BuildingId
 import com.example.schedule.data.models.DaySchedule
 import com.example.schedule.data.models.Lesson
+import com.example.schedule.features.schedule.utils.ScheduleUtils
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -20,12 +22,14 @@ fun DayScheduleItem(
     day: DaySchedule, 
     isToday: Boolean = false, 
     isNext: Boolean = false,
+    building: BuildingId? = null,
+    refreshTrigger: Int = 0,
     modifier: Modifier = Modifier,
     onLessonClick: (Lesson) -> Unit = {}
 ) {
-    val statusLabel = remember(day.dayDate, isToday, isNext) {
+    val statusLabel = remember(day, isToday, isNext, refreshTrigger, building) {
         when {
-            isToday -> "Сегодня"
+            isToday -> ScheduleUtils.getLiveStatusForToday(day, building)
             isNext -> {
                 try {
                     val dateFormat = SimpleDateFormat("dd.MM.yyyy", Locale("ru"))
@@ -98,7 +102,8 @@ fun DayScheduleItem(
                             MaterialTheme.colorScheme.onPrimaryContainer
                         else
                             MaterialTheme.colorScheme.onSecondaryContainer,
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                        maxLines = 1
                     )
                 }
             }

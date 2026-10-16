@@ -75,10 +75,14 @@ object ScheduleUtils {
         val now = Calendar.getInstance()
         val currentTime = now.get(Calendar.HOUR_OF_DAY) * 60 + now.get(Calendar.MINUTE)
         
-        val schedule = BuildingUtils.getCallSchedule()
+        val schedule = BuildingUtils.getCallSchedule(building)
+        val lessonNumRegex = Regex("""\d+""")
         
-        val lastLesson = day.lessons.maxByOrNull { it.lessonNumber.toIntOrNull() ?: 0 } ?: return true
-        val lastLessonNumber = lastLesson.lessonNumber.toIntOrNull() ?: return true
+        val lastLesson = day.lessons.maxByOrNull {
+            lessonNumRegex.find(it.lessonNumber)?.value?.toIntOrNull() ?: it.lessonNumber.toIntOrNull() ?: 0
+        } ?: return true
+        val lastLessonNumber = lessonNumRegex.find(lastLesson.lessonNumber)?.value?.toIntOrNull()
+            ?: lastLesson.lessonNumber.toIntOrNull() ?: return true
         
         val lastCall = schedule.find { it.pairNumber == lastLessonNumber } ?: return true
         
@@ -87,6 +91,108 @@ object ScheduleUtils {
         val endMinutes = endParts[0].toInt() * 60 + endParts[1].toInt()
         
         return currentTime >= (endMinutes + 5)
+    }
+
+    fun getLiveStatusForToday(
+        day: DaySchedule,
+        building: BuildingId? = null,
+        nowCalendar: Calendar = Calendar.getInstance()
+    ): String? {
+        if (day.lessons.isEmpty()) return "Сегодня"
+
+        val callSchedule = BuildingUtils.getCallSchedule(building)
+        val lessonNumRegex = Regex("""\d+""")
+
+        data class ResolvedLesson(
+            val lesson: Lesson,
+            val pairNum: Int,
+            val firstStartMin: Int,
+            val firstEndMin: Int,
+            val secondStartMin: Int,
+            val secondEndMin: Int,
+            val isSolid: Boolean
+        )
+
+        fun parseTimeToMinutes(timeStr: String): Int {
+            val parts = timeStr.split(":")
+            return parts[0].toInt() * 60 + parts[1].toInt()
+        }
+
+        val resolvedLessons = day.lessons.mapNotNull { lesson ->
+            val pairNum = lessonNumRegex.find(lesson.lessonNumber)?.value?.toIntOrNull()
+                ?: lesson.lessonNumber.toIntOrNull()
+                ?: return@mapNotNull null
+
+            val call = callSchedule.find { it.pairNumber == pairNum } ?: return@mapNotNull null
+
+            ResolvedLesson(
+                lesson = lesson,
+                pairNum = pairNum,
+                firstStartMin = parseTimeToMinutes(call.firstStart),
+                firstEndMin = parseTimeToMinutes(call.firstEnd),
+                secondStartMin = parseTimeToMinutes(call.secondStart),
+                secondEndMin = parseTimeToMinutes(call.secondEnd),
+                isSolid = call.isSolid
+            )
+        }.sortedBy { it.firstStartMin }
+
+        if (resolvedLessons.isEmpty()) return "Сегодня"
+
+        val currentMinutes = nowCalendar.get(Calendar.HOUR_OF_DAY) * 60 + nowCalendar.get(Calendar.MINUTE)
+        val firstLesson = resolvedLessons.first()
+        val lastLesson = resolvedLessons.last()
+        val lastLessonEndMin = if (lastLesson.isSolid) lastLesson.firstEndMin else lastLesson.secondEndMin
+
+        // 1. Before first lesson
+        if (currentMinutes < firstLesson.firstStartMin) {
+            val diff = firstLesson.firstStartMin - currentMinutes
+            return if (diff <= 60) {
+                "До пары $diff мин"
+            } else {
+                "Сегодня"
+            }
+        }
+
+        // 2. After last lesson
+        if (currentMinutes >= lastLessonEndMin) {
+            return null
+        }
+
+        // 3. During lesson
+        for (item in resolvedLessons) {
+            if (item.isSolid) {
+                if (currentMinutes in item.firstStartMin until item.firstEndMin) {
+                    val diff = item.firstEndMin - currentMinutes
+                    return "До конца пары $diff мин"
+                }
+            } else {
+                if (currentMinutes in item.firstStartMin until item.firstEndMin) {
+                    val diff = item.firstEndMin - currentMinutes
+                    return "До перерыва $diff мин"
+                }
+                if (currentMinutes in item.firstEndMin until item.secondStartMin) {
+                    val diff = item.secondStartMin - currentMinutes
+                    return "До звонка $diff мин"
+                }
+                if (currentMinutes in item.secondStartMin until item.secondEndMin) {
+                    val diff = item.secondEndMin - currentMinutes
+                    return "До конца пары $diff мин"
+                }
+            }
+        }
+
+        // 4. Break between lessons or window
+        val nextLesson = resolvedLessons.firstOrNull { it.firstStartMin > currentMinutes }
+        if (nextLesson != null) {
+            val diff = nextLesson.firstStartMin - currentMinutes
+            return if (diff <= 60) {
+                "До пары $diff мин"
+            } else {
+                "Сегодня"
+            }
+        }
+
+        return "Сегодня"
     }
 
     fun findTodayIndex(days: List<DaySchedule>, building: BuildingId? = null): Int {
@@ -101,7 +207,7 @@ object ScheduleUtils {
         
         if (todayIndex >= 0) {
             val todaySchedule = days[todayIndex]
-            if (areClassesFinishedForToday(todaySchedule)) {
+            if (areClassesFinishedForToday(todaySchedule, building)) {
                 for (i in (todayIndex + 1) until days.size) {
                     if (days[i].lessons.isNotEmpty()) {
                         return i
@@ -176,10 +282,14 @@ object ScheduleUtils {
 
         if (todaySchedule.lessons.isEmpty()) return null
 
-        val schedule = BuildingUtils.getCallSchedule()
+        val schedule = BuildingUtils.getCallSchedule(building)
+        val lessonNumRegex = Regex("""\d+""")
 
-        val lastLesson = todaySchedule.lessons.maxByOrNull { it.lessonNumber.toIntOrNull() ?: 0 } ?: return null
-        val lastLessonNumber = lastLesson.lessonNumber.toIntOrNull() ?: return null
+        val lastLesson = todaySchedule.lessons.maxByOrNull {
+            lessonNumRegex.find(it.lessonNumber)?.value?.toIntOrNull() ?: it.lessonNumber.toIntOrNull() ?: 0
+        } ?: return null
+        val lastLessonNumber = lessonNumRegex.find(lastLesson.lessonNumber)?.value?.toIntOrNull()
+            ?: lastLesson.lessonNumber.toIntOrNull() ?: return null
 
         val lastCall = schedule.find { it.pairNumber == lastLessonNumber } ?: return null
 

@@ -11,6 +11,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.example.schedule.core.utils.BuildingUtils
 import com.example.schedule.data.models.DaySchedule
 import com.example.schedule.data.models.Lesson
 import com.example.schedule.data.models.Schedule
@@ -33,10 +34,14 @@ fun ScheduleList(
             refreshTrigger++
         }
     }
+
+    val building = remember(schedule.group) {
+        BuildingUtils.getBuildingForGroup(schedule.group)
+    }
     
     // Вычисляем индекс активного дня
-    val displayIndex = remember(schedule, refreshTrigger) { 
-        ScheduleUtils.findTodayIndex(schedule.days) 
+    val displayIndex = remember(schedule, refreshTrigger, building) { 
+        ScheduleUtils.findTodayIndex(schedule.days, building) 
     }
     
     // Вычисляем, показываем ли мы "следующий" день
@@ -169,6 +174,8 @@ fun ScheduleList(
                     day = day, 
                     isToday = isToday, 
                     isNext = isNext,
+                    building = building,
+                    refreshTrigger = refreshTrigger,
                     modifier = Modifier.graphicsLayer(),
                     onLessonClick = { lesson -> onLessonClick(day.dayDate, lesson) }
                 )
