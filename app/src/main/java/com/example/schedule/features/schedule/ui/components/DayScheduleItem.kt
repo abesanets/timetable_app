@@ -106,7 +106,7 @@ fun DayScheduleItem(
 
         if (day.lessons.isNotEmpty()) {
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                day.lessons.asReversed().forEach { lesson ->
+                day.lessons.forEach { lesson ->
                     LessonItem(
                         lesson = lesson, 
                         isHighlighted = isToday || isNext,
