@@ -19,20 +19,21 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:text="Понедельник, 30.01"
-            android:textSize="14sp"
+            android:textSize="13sp"
             android:textStyle="bold"
-            android:textColor="#E2E2E6" />
+            android:textColor="#E2E2E6"
+            android:maxLines="1"
+            android:ellipsize="end" />
 
         <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Обновить"
-            android:textSize="11sp"
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:text="↻"
+            android:textSize="16sp"
             android:textStyle="bold"
             android:textColor="#D7E3F7"
             android:background="@drawable/preview_button_bg"
-            android:paddingHorizontal="10dp"
-            android:paddingVertical="5dp" />
+            android:gravity="center" />
     </LinearLayout>
 
     <!-- Пара 1 -->
@@ -41,14 +42,14 @@
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:background="@drawable/preview_card_bg"
-        android:padding="10dp"
+        android:padding="8dp"
         android:layout_marginBottom="6dp">
 
         <TextView
-            android:layout_width="36dp"
-            android:layout_height="36dp"
+            android:layout_width="28dp"
+            android:layout_height="28dp"
             android:text="1"
-            android:textSize="16sp"
+            android:textSize="13sp"
             android:textStyle="bold"
             android:textColor="#253140"
             android:background="@drawable/preview_number_bg"
@@ -59,26 +60,26 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:orientation="vertical"
-            android:layout_marginStart="10dp">
+            android:layout_marginStart="8dp">
 
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="Математический анализ"
-                android:textSize="13sp"
+                android:textSize="12sp"
                 android:textStyle="bold"
                 android:textColor="#E2E2E6"
-                android:maxLines="2"
+                android:maxLines="1"
                 android:ellipsize="end" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="• 301"
-                android:textSize="12sp"
+                android:textSize="10sp"
                 android:textStyle="bold"
                 android:textColor="#BBC7DB"
-                android:layout_marginTop="4dp" />
+                android:layout_marginTop="2dp" />
         </LinearLayout>
     </LinearLayout>
 
@@ -88,13 +89,13 @@
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:background="@drawable/preview_card_bg"
-        android:padding="10dp">
+        android:padding="8dp">
 
         <TextView
-            android:layout_width="36dp"
-            android:layout_height="36dp"
+            android:layout_width="28dp"
+            android:layout_height="28dp"
             android:text="2"
-            android:textSize="16sp"
+            android:textSize="13sp"
             android:textStyle="bold"
             android:textColor="#253140"
             android:background="@drawable/preview_number_bg"
@@ -105,26 +106,26 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:orientation="vertical"
-            android:layout_marginStart="10dp">
+            android:layout_marginStart="8dp">
 
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="Физика"
-                android:textSize="13sp"
+                android:textSize="12sp"
                 android:textStyle="bold"
                 android:textColor="#E2E2E6"
-                android:maxLines="2"
+                android:maxLines="1"
                 android:ellipsize="end" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="• 205"
-                android:textSize="12sp"
+                android:textSize="10sp"
                 android:textStyle="bold"
                 android:textColor="#BBC7DB"
-                android:layout_marginTop="4dp" />
+                android:layout_marginTop="2dp" />
         </LinearLayout>
     </LinearLayout>
 
