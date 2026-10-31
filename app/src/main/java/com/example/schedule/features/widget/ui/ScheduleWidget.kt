@@ -96,7 +96,9 @@ class ScheduleWidget : GlanceAppWidget() {
 @Composable
 fun WidgetContent(widgetData: WidgetData, isLoading: Boolean) {
     Box(
-        modifier = GlanceModifier.fillMaxSize(),
+        modifier = GlanceModifier
+            .fillMaxSize()
+            .clickable(actionStartActivity<MainActivity>()),
         contentAlignment = Alignment.Center
     ) {
         // Основной контент - убираем главный padding для эффекта edge-to-edge при скролле
@@ -104,13 +106,15 @@ fun WidgetContent(widgetData: WidgetData, isLoading: Boolean) {
             modifier = GlanceModifier
                 .fillMaxSize()
                 .background(GlanceTheme.colors.background)
-                .clickable(actionStartActivity<MainActivity>())
         ) {
         when {
             widgetData.error != null -> {
                 item {
                     Column(
-                        modifier = GlanceModifier.fillMaxWidth().padding(16.dp),
+                        modifier = GlanceModifier
+                            .fillMaxWidth()
+                            .padding(16.dp)
+                            .clickable(actionStartActivity<MainActivity>()),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
@@ -136,15 +140,23 @@ fun WidgetContent(widgetData: WidgetData, isLoading: Boolean) {
                 item {
                     DayScheduleWidget(widgetData.daySchedule)
                 }
-                // Добавляем пустой элемент в конце для небольшого отступа снизу
+                // Добавляем кликабельный элемент в конце для небольшого отступа снизу и открытия приложения
                 item {
-                    Spacer(modifier = GlanceModifier.height(8.dp))
+                    Spacer(
+                        modifier = GlanceModifier
+                            .fillMaxWidth()
+                            .height(16.dp)
+                            .clickable(actionStartActivity<MainActivity>())
+                    )
                 }
             }
             else -> {
                 item {
                     Column(
-                        modifier = GlanceModifier.fillMaxWidth().padding(32.dp),
+                        modifier = GlanceModifier
+                            .fillMaxWidth()
+                            .padding(32.dp)
+                            .clickable(actionStartActivity<MainActivity>()),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
@@ -200,37 +212,46 @@ fun DayScheduleWidget(day: DaySchedule) {
         modifier = GlanceModifier.fillMaxWidth(),
         verticalAlignment = Alignment.Top
     ) {
-        // Заголовок дня - добавляем padding только здесь
+        // Заголовок дня
         Row(
             modifier = GlanceModifier
                 .fillMaxWidth()
-                .padding(start = 12.dp, end = 12.dp, top = 12.dp, bottom = 8.dp),
+                .padding(start = 12.dp, end = 12.dp, top = 10.dp, bottom = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text(
-                text = day.dayDate,
-                style = TextStyle(
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = GlanceTheme.colors.onSurface
-                ),
-                modifier = GlanceModifier.defaultWeight()
-            )
+            Box(
+                modifier = GlanceModifier
+                    .defaultWeight()
+                    .clickable(actionStartActivity<MainActivity>()),
+                contentAlignment = Alignment.CenterStart
+            ) {
+                Text(
+                    text = day.dayDate,
+                    style = TextStyle(
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = GlanceTheme.colors.onSurface
+                    ),
+                    maxLines = 1
+                )
+            }
+            
+            Spacer(modifier = GlanceModifier.width(6.dp))
             
             Box(
                 modifier = GlanceModifier
+                    .size(28.dp)
                     .background(GlanceTheme.colors.secondaryContainer)
-                    .cornerRadius(10.dp)
-                    .padding(horizontal = 8.dp, vertical = 4.dp)
+                    .cornerRadius(14.dp)
                     .clickable(actionRunCallback<RefreshWidgetAction>()),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = "Обновить",
+                    text = "↻",
                     style = TextStyle(
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.Medium,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold,
                         color = GlanceTheme.colors.onSecondaryContainer
                     )
                 )
@@ -238,12 +259,17 @@ fun DayScheduleWidget(day: DaySchedule) {
         }
         
         if (day.lessons.isEmpty()) {
-            Box(modifier = GlanceModifier.padding(horizontal = 8.dp)) {
+            Box(
+                modifier = GlanceModifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp)
+                    .clickable(actionStartActivity<MainActivity>())
+            ) {
                 Row(
                     modifier = GlanceModifier
                         .fillMaxWidth()
                         .background(GlanceTheme.colors.surfaceVariant)
-                        .cornerRadius(24.dp)
+                        .cornerRadius(20.dp)
                         .padding(12.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalAlignment = Alignment.Start
@@ -276,30 +302,31 @@ fun LessonWidgetItem(lesson: Lesson) {
         modifier = GlanceModifier
             .fillMaxWidth()
             .background(GlanceTheme.colors.surfaceVariant)
-            .cornerRadius(20.dp)
-            .padding(10.dp),
+            .cornerRadius(16.dp)
+            .padding(8.dp)
+            .clickable(actionStartActivity<MainActivity>()),
         verticalAlignment = Alignment.CenterVertically,
         horizontalAlignment = Alignment.Start
     ) {
-        // Уменьшаем размер номера пары
+        // Уменьшаем размер номера пары для компактности в 2x2
         Box(
             modifier = GlanceModifier
-                .size(32.dp)
+                .size(28.dp)
                 .background(GlanceTheme.colors.secondaryContainer)
-                .cornerRadius(16.dp),
+                .cornerRadius(14.dp),
             contentAlignment = Alignment.Center
         ) {
             Text(
                 text = lesson.lessonNumber,
                 style = TextStyle(
-                    fontSize = 14.sp,
+                    fontSize = 13.sp,
                     fontWeight = FontWeight.Bold,
                     color = GlanceTheme.colors.onSecondaryContainer
                 )
             )
         }
         
-        Spacer(modifier = GlanceModifier.width(10.dp))
+        Spacer(modifier = GlanceModifier.width(8.dp))
         
         Column(
             modifier = GlanceModifier.defaultWeight(),
@@ -325,14 +352,14 @@ fun LessonWidgetItem(lesson: Lesson) {
                     Box(
                         modifier = GlanceModifier
                             .background(GlanceTheme.colors.secondaryContainer)
-                            .cornerRadius(8.dp)
-                            .padding(horizontal = 8.dp, vertical = 2.dp),
+                            .cornerRadius(6.dp)
+                            .padding(horizontal = 6.dp, vertical = 2.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
                             text = subgroup.room,
                             style = TextStyle(
-                                fontSize = 10.sp,
+                                fontSize = 9.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = GlanceTheme.colors.onSecondaryContainer
                             )
@@ -362,14 +389,14 @@ fun LessonWidgetItem(lesson: Lesson) {
                             Box(
                                 modifier = GlanceModifier
                                     .background(GlanceTheme.colors.secondaryContainer)
-                                    .cornerRadius(8.dp)
+                                    .cornerRadius(6.dp)
                                     .padding(horizontal = 6.dp, vertical = 1.dp),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Text(
                                     text = subgroup.room,
                                     style = TextStyle(
-                                        fontSize = 10.sp,
+                                        fontSize = 9.sp,
                                         fontWeight = FontWeight.Bold,
                                         color = GlanceTheme.colors.onSecondaryContainer
                                     )
