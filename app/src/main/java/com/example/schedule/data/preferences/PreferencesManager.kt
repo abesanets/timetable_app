@@ -10,6 +10,7 @@ import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.example.schedule.data.models.Schedule
+import com.example.schedule.features.staff.data.CachedStaffData
 import com.google.gson.Gson
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -28,6 +29,7 @@ class PreferencesManager(private val context: Context) {
         private val WIDGET_UPDATE_INTERVAL_KEY = longPreferencesKey("widget_update_interval")
         private val LAST_UPDATE_CHECK_KEY = longPreferencesKey("last_update_check_time")
         private val DISMISSED_UPDATE_VERSION_KEY = stringPreferencesKey("dismissed_update_version")
+        private val CACHED_STAFF_KEY = stringPreferencesKey("cached_staff_data")
     }
     
     val lastGroup: Flow<String?> = context.dataStore.data
@@ -69,6 +71,17 @@ class PreferencesManager(private val context: Context) {
     val dismissedUpdateVersion: Flow<String?> = context.dataStore.data
         .map { preferences ->
             preferences[DISMISSED_UPDATE_VERSION_KEY]
+        }
+
+    val cachedStaff: Flow<CachedStaffData?> = context.dataStore.data
+        .map { preferences ->
+            preferences[CACHED_STAFF_KEY]?.let { json ->
+                try {
+                    gson.fromJson(json, CachedStaffData::class.java)
+                } catch (e: Exception) {
+                    null
+                }
+            }
         }
     
     suspend fun saveLastGroup(group: String) {
@@ -114,6 +127,12 @@ class PreferencesManager(private val context: Context) {
             } else {
                 preferences.remove(DISMISSED_UPDATE_VERSION_KEY)
             }
+        }
+    }
+
+    suspend fun saveCachedStaff(data: CachedStaffData) {
+        context.dataStore.edit { preferences ->
+            preferences[CACHED_STAFF_KEY] = gson.toJson(data)
         }
     }
 }

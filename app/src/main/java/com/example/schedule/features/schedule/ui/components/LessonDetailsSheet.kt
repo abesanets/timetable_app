@@ -25,13 +25,16 @@ import com.example.schedule.data.models.BuildingId
 import com.example.schedule.data.models.Lesson
 import com.example.schedule.data.models.Subgroup
 import com.example.schedule.features.staff.data.StaffMember
+import com.example.schedule.features.staff.ui.StaffAvatar
 import com.example.schedule.features.staff.utils.StaffUtils
 
 @Composable
 fun LessonDetailsSheet(
     lesson: Lesson,
     groupName: String? = null,
-    onTeacherClick: (StaffMember) -> Unit
+    staffList: List<StaffMember> = emptyList(),
+    onTeacherClick: (StaffMember) -> Unit,
+    onOpenTeacherSchedule: (String) -> Unit = {}
 ) {
     val callTime = remember(lesson.lessonNumber) {
         BuildingUtils.getCallTime(lesson.lessonNumber)
@@ -78,7 +81,9 @@ fun LessonDetailsSheet(
                 SubgroupDetailItem(
                     subgroup = subgroup,
                     showDivider = index < lesson.subgroups.size - 1,
-                    onTeacherClick = onTeacherClick
+                    staffList = staffList,
+                    onTeacherClick = onTeacherClick,
+                    onOpenTeacherSchedule = onOpenTeacherSchedule
                 )
             }
         }
@@ -89,7 +94,9 @@ fun LessonDetailsSheet(
 fun SubgroupDetailItem(
     subgroup: Subgroup,
     showDivider: Boolean,
-    onTeacherClick: (StaffMember) -> Unit
+    staffList: List<StaffMember>,
+    onTeacherClick: (StaffMember) -> Unit,
+    onOpenTeacherSchedule: (String) -> Unit
 ) {
     val teacherRegex = Regex("""([А-ЯЁ][а-яё]+)\s+([А-ЯЁ]\.\s*[А-ЯЁ]\.)""")
     val teacherMatch = teacherRegex.find(subgroup.subject)
@@ -101,9 +108,11 @@ fun SubgroupDetailItem(
         subgroup.subject
     }
 
-    val staffMember = if (shortTeacherName != null) {
-        StaffUtils.findStaffByShortName(shortTeacherName)
-    } else null
+    val staffMember = remember(shortTeacherName, staffList) {
+        if (shortTeacherName != null) {
+            StaffUtils.findStaffByShortName(shortTeacherName, staffList)
+        } else null
+    }
 
     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
         if (subgroup.number != null && subgroup.number != 0) {
@@ -131,18 +140,37 @@ fun SubgroupDetailItem(
         }
 
         if (shortTeacherName != null) {
-             val teacherLabel = if (staffMember != null) {
-                 staffMember.fullName
-             } else {
-                 shortTeacherName
-             }
-             
-             DetailRow(
+            val teacherLabel = staffMember?.fullName ?: shortTeacherName
+            val actionHint = if (staffMember != null) {
+                "Нажмите, чтобы узнать больше"
+            } else {
+                "Нажмите, чтобы открыть расписание"
+            }
+
+            DetailRow(
                 icon = Icons.Rounded.Person,
                 label = "Преподаватель",
                 text = teacherLabel,
-                onClick = if (staffMember != null) { { onTeacherClick(staffMember) } } else null,
-                isClickable = staffMember != null
+                onClick = {
+                    if (staffMember != null) {
+                        onTeacherClick(staffMember)
+                    } else {
+                        onOpenTeacherSchedule(shortTeacherName)
+                    }
+                },
+                isClickable = true,
+                actionHint = actionHint,
+                customLeading = if (staffMember != null && !staffMember.photoUrl.isNullOrBlank()) {
+                    {
+                        StaffAvatar(
+                            fullName = staffMember.fullName,
+                            photoUrl = staffMember.photoUrl,
+                            modifier = Modifier
+                                .size(40.dp)
+                                .clip(CircleShape)
+                        )
+                    }
+                } else null
             )
         }
     }
@@ -161,7 +189,9 @@ fun DetailRow(
     label: String,
     text: String,
     onClick: (() -> Unit)? = null,
-    isClickable: Boolean = false
+    isClickable: Boolean = false,
+    actionHint: String = "Нажмите, чтобы узнать больше",
+    customLeading: (@Composable () -> Unit)? = null
 ) {
     Row(
         modifier = Modifier
@@ -172,18 +202,22 @@ fun DetailRow(
         horizontalArrangement = Arrangement.spacedBy(16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Surface(
-            shape = CircleShape,
-            color = if (isClickable) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.secondaryContainer,
-            modifier = Modifier.size(40.dp)
-        ) {
-            Box(contentAlignment = Alignment.Center) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = if (isClickable) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSecondaryContainer,
-                    modifier = Modifier.size(20.dp)
-                )
+        if (customLeading != null) {
+            customLeading()
+        } else {
+            Surface(
+                shape = CircleShape,
+                color = if (isClickable) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.secondaryContainer,
+                modifier = Modifier.size(40.dp)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        tint = if (isClickable) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSecondaryContainer,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
             }
         }
         
@@ -203,7 +237,7 @@ fun DetailRow(
             
             if (isClickable) {
                 Text(
-                    text = "Нажмите, чтобы узнать больше",
+                    text = actionHint,
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
                 )

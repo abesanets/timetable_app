@@ -14,3 +14,5 @@
 -keepclassmembers class com.example.schedule.data.models.** { *; }
 -keep class com.example.schedule.features.update.data.** { *; }
 -keepclassmembers class com.example.schedule.features.update.data.** { *; }
+-keep class com.example.schedule.features.staff.data.** { *; }
+-keepclassmembers class com.example.schedule.features.staff.data.** { *; }

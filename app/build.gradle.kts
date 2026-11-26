@@ -87,6 +87,9 @@ dependencies {
     
     // Gson для сериализации данных
     implementation("com.google.code.gson:gson:2.10.1")
+
+    // Coil для загрузки изображений
+    implementation("io.coil-kt:coil-compose:2.7.0")
     
     // Тестирование
     testImplementation("junit:junit:4.13.2")

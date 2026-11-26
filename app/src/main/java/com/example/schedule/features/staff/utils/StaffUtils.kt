@@ -1,6 +1,5 @@
 package com.example.schedule.features.staff.utils
 
-import com.example.schedule.features.staff.data.StaffData
 import com.example.schedule.features.staff.data.StaffMember
 
 object StaffUtils {
@@ -45,7 +44,7 @@ object StaffUtils {
     /**
      * Tries to find a StaffMember based on a short name from the schedule (e.g. "Козел Г.В.").
      */
-    fun findStaffByShortName(shortName: String): StaffMember? {
+    fun findStaffByShortName(shortName: String, staffList: List<StaffMember>): StaffMember? {
         val cleanShortName = shortName.replace(".", "").trim()
         // e.g. "Козел ГВ"
         
@@ -57,10 +56,7 @@ object StaffUtils {
         // Helper to normalize strings for comparison
         fun normalize(s: String) = s.lowercase().replace("ё", "е")
 
-        // Search in all lists
-        val allStaff = StaffData.administration + StaffData.teachers + StaffData.employees
-        
-        return allStaff.find { member ->
+        return staffList.find { member ->
             val memberParts = member.fullName.split(" ")
             val memberSurname = memberParts.getOrNull(0) ?: ""
             

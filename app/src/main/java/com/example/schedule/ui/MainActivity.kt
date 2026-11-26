@@ -37,7 +37,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.PopupProperties
 import com.example.schedule.R
 import com.example.schedule.core.utils.TextUtils
-import com.example.schedule.features.staff.data.StaffData
+import com.example.schedule.features.staff.data.StaffMember
+import com.example.schedule.features.staff.data.StaffRepository
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
@@ -54,7 +55,6 @@ import com.example.schedule.features.schedule.ui.components.SearchSuggestion
 import com.example.schedule.features.schedule.ui.components.SearchSuggestionsCard
 import com.example.schedule.features.schedule.utils.ScheduleUtils
 import com.example.schedule.features.settings.ui.SettingsScreen
-import com.example.schedule.features.staff.ui.StaffScreen
 import com.example.schedule.features.widget.ui.ScheduleWidget
 import com.example.schedule.ui.navigation.Screen
 import com.example.schedule.ui.theme.MaterialYouTheme
@@ -109,6 +109,20 @@ fun ScheduleApp() {
 
     val updateManager = remember { UpdateManager(context) }
     var autoUpdateInfo by remember { mutableStateOf<AppUpdateInfo?>(null) }
+
+    val staffRepository = remember { StaffRepository(preferencesManager) }
+    var staffList by remember { mutableStateOf<List<StaffMember>>(emptyList()) }
+
+    LaunchedEffect(Unit) {
+        val cached = staffRepository.getCachedOnly()
+        if (cached.isNotEmpty()) {
+            staffList = cached
+        }
+        val fresh = staffRepository.getStaff()
+        if (fresh.isNotEmpty()) {
+            staffList = fresh
+        }
+    }
 
     LaunchedEffect(Unit) {
         try {
@@ -228,7 +242,8 @@ fun ScheduleApp() {
                             errorMessage = errorMessage,
                             isLoading = isLoading,
                             loadSchedule = { loadSchedule(it) },
-                            loadedGroup = loadedGroup
+                            loadedGroup = loadedGroup,
+                            staffList = staffList
                         )
                 }
                 composable(
@@ -237,26 +252,6 @@ fun ScheduleApp() {
                     exitTransition = { fadeOut(tween(300, easing = FastOutSlowInEasing)) }
                 ) {
                     AlarmsScreen()
-                }
-                composable(
-                    route = Screen.Staff.route,
-                    enterTransition = { fadeIn(tween(400, easing = FastOutSlowInEasing)) },
-                    exitTransition = { fadeOut(tween(300, easing = FastOutSlowInEasing)) }
-                ) {
-                    StaffScreen(
-                        onViewScheduleClick = { teacherName ->
-                            groupInput = teacherName
-                            navController.navigate(Screen.Home.route) {
-                                popUpTo(navController.graph.findStartDestination().id) {
-                                    saveState = true
-                                }
-                                launchSingleTop = true
-                                restoreState = true
-                            }
-                            // Trigger loading after state update
-                            loadSchedule(teacherName)
-                        }
-                    )
                 }
                 composable(
                     route = Screen.Settings.route,
@@ -297,7 +292,7 @@ fun ScheduleApp() {
         }
 
         // Smart Transforming Bottom Dock Bar
-        val screens = remember { listOf(Screen.Home, Screen.Alarms, Screen.Staff, Screen.Settings) }
+        val screens = remember { listOf(Screen.Home, Screen.Alarms, Screen.Settings) }
         val navBackStackEntry by navController.currentBackStackEntryAsState()
         val currentDestination = navBackStackEntry?.destination
         val selectedIndex = remember(currentDestination) {
@@ -316,13 +311,7 @@ fun ScheduleApp() {
             }
         }
 
-        val allStaffMembers = remember { 
-            (StaffData.administration + StaffData.teachers + StaffData.employees)
-                .distinctBy { it.fullName }
-                .sortedBy { it.fullName }
-        }
-        
-        val suggestions = remember(groupInput) {
+        val suggestions = remember(groupInput, staffList) {
             val query = groupInput.trim()
             if (query.isEmpty()) return@remember emptyList<SearchSuggestion>()
             
@@ -334,7 +323,7 @@ fun ScheduleApp() {
             }
             
             if (query.any { !it.isDigit() } || result.size < 3) {
-                val matchedTeachers = allStaffMembers.filter { member ->
+                val matchedTeachers = staffList.filter { member ->
                     member.fullName.contains(query, ignoreCase = true) ||
                     member.position.contains(query, ignoreCase = true)
                 }.take(5 - result.size)
@@ -636,8 +625,8 @@ fun ScheduleApp() {
                             }
                         }
 
-                        // Right section: Alarms, Staff, Settings (hides when search is active to give full width to input)
-                        val remainingScreens = remember { listOf(Screen.Alarms, Screen.Staff, Screen.Settings) }
+                        // Right section: Alarms, Settings (hides when search is active to give full width to input)
+                        val remainingScreens = remember { listOf(Screen.Alarms, Screen.Settings) }
                         val isSearchActive = isHome && (isSearchFocused || isImeVisible)
 
                         AnimatedVisibility(

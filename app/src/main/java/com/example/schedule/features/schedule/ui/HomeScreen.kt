@@ -44,7 +44,6 @@ import com.example.schedule.data.models.Schedule
 import com.example.schedule.features.schedule.ui.components.LessonDetailsSheet
 import com.example.schedule.features.schedule.ui.components.ScheduleList
 import com.example.schedule.features.schedule.utils.ScheduleUtils
-import com.example.schedule.features.staff.data.StaffData
 import com.example.schedule.features.staff.data.StaffMember
 import com.example.schedule.features.staff.ui.StaffDetailContent
 
@@ -60,7 +59,8 @@ fun HomeScreen(
     errorMessage: String?,
     isLoading: Boolean,
     loadSchedule: (String?) -> Unit,
-    loadedGroup: String?
+    loadedGroup: String?,
+    staffList: List<StaffMember> = emptyList()
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var showBottomSheet by remember { mutableStateOf(false) }
@@ -326,9 +326,15 @@ fun HomeScreen(
                                     LessonDetailsSheet(
                                         lesson = lesson,
                                         groupName = loadedGroup ?: groupInput,
+                                        staffList = staffList,
                                         onTeacherClick = { staffMember ->
                                             selectedStaffMember = staffMember
                                             sheetContentState = SheetContent.StaffDetails
+                                        },
+                                        onOpenTeacherSchedule = { teacherName ->
+                                            onGroupInputChange(teacherName)
+                                            showBottomSheet = false
+                                            loadSchedule(teacherName)
                                         }
                                     )
                                 }
