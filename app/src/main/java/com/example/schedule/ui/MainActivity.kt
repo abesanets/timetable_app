@@ -2,17 +2,21 @@ package com.example.schedule.ui
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
@@ -39,12 +43,6 @@ import com.example.schedule.R
 import com.example.schedule.core.utils.TextUtils
 import com.example.schedule.features.staff.data.StaffMember
 import com.example.schedule.features.staff.data.StaffRepository
-import androidx.navigation.NavDestination.Companion.hierarchy
-import androidx.navigation.NavGraph.Companion.findStartDestination
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
-import androidx.navigation.compose.currentBackStackEntryAsState
-import androidx.navigation.compose.rememberNavController
 import com.example.schedule.data.models.GroupData
 import com.example.schedule.data.models.Schedule
 import com.example.schedule.data.network.*
@@ -81,10 +79,9 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
+@OptIn(ExperimentalLayoutApi::class, ExperimentalFoundationApi::class)
 @Composable
 fun ScheduleApp() {
-    val navController = rememberNavController()
     val context = LocalContext.current
     val preferencesManager = remember { PreferencesManager(context) }
     
@@ -215,23 +212,48 @@ fun ScheduleApp() {
         }
     }
     
+    val screens = remember { listOf(Screen.Home, Screen.Alarms, Screen.Settings) }
+    val pagerState = rememberPagerState(pageCount = { screens.size })
+    val selectedIndex = pagerState.currentPage
+    val isHome = selectedIndex == 0
+
+    val focusManager = LocalFocusManager.current
+    var isSearchFocused by remember { mutableStateOf(false) }
+    val isImeVisible = WindowInsets.isImeVisible
+
+    LaunchedEffect(isImeVisible) {
+        if (!isImeVisible) {
+            focusManager.clearFocus()
+        }
+    }
+
+    LaunchedEffect(selectedIndex) {
+        if (selectedIndex != 0) {
+            focusManager.clearFocus()
+        }
+    }
+
+    BackHandler(enabled = pagerState.currentPage != 0) {
+        scope.launch {
+            pagerState.animateScrollToPage(0)
+        }
+    }
+
     Box(modifier = Modifier.fillMaxSize()) {
         Scaffold(
             containerColor = MaterialTheme.colorScheme.background,
             contentWindowInsets = WindowInsets(0, 0, 0, 0)
         ) { paddingValues ->
-            NavHost(
-                navController = navController,
-                startDestination = Screen.Home.route,
+            HorizontalPager(
+                state = pagerState,
+                userScrollEnabled = !(isHome && (isSearchFocused || isImeVisible)),
+                beyondBoundsPageCount = 2,
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(paddingValues)
-            ) {
-                composable(
-                    route = Screen.Home.route,
-                    enterTransition = { fadeIn(tween(400, easing = FastOutSlowInEasing)) },
-                    exitTransition = { fadeOut(tween(300, easing = FastOutSlowInEasing)) }
-                ) {
+            ) { page ->
+                when (screens[page]) {
+                    Screen.Home -> {
                         HomeScreen(
                             groupInput = groupInput,
                             onGroupInputChange = { groupInput = it },
@@ -245,25 +267,13 @@ fun ScheduleApp() {
                             loadedGroup = loadedGroup,
                             staffList = staffList
                         )
-                }
-                composable(
-                    route = Screen.Alarms.route,
-                    enterTransition = { fadeIn(tween(400, easing = FastOutSlowInEasing)) },
-                    exitTransition = { fadeOut(tween(300, easing = FastOutSlowInEasing)) }
-                ) {
-                    AlarmsScreen()
-                }
-                composable(
-                    route = Screen.Settings.route,
-                    enterTransition = { fadeIn(tween(400, easing = FastOutSlowInEasing)) },
-                    exitTransition = { fadeOut(tween(300, easing = FastOutSlowInEasing)) }
-                ) {
-                    SettingsScreen()
+                    }
+                    Screen.Alarms -> AlarmsScreen()
+                    Screen.Settings -> SettingsScreen()
                 }
             }
         }
 
-        val isImeVisible = WindowInsets.isImeVisible
         val imeBottom = WindowInsets.ime.asPaddingValues().calculateBottomPadding()
         val navBarBottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
         val dockBottomPadding = maxOf(navBarBottom + 8.dp, imeBottom + 12.dp)
@@ -292,25 +302,6 @@ fun ScheduleApp() {
         }
 
         // Smart Transforming Bottom Dock Bar
-        val screens = remember { listOf(Screen.Home, Screen.Alarms, Screen.Settings) }
-        val navBackStackEntry by navController.currentBackStackEntryAsState()
-        val currentDestination = navBackStackEntry?.destination
-        val selectedIndex = remember(currentDestination) {
-            val idx = screens.indexOfFirst { screen ->
-                currentDestination?.hierarchy?.any { it.route == screen.route } == true
-            }
-            if (idx >= 0) idx else 0
-        }
-        val isHome = selectedIndex == 0
-
-        val focusManager = LocalFocusManager.current
-        var isSearchFocused by remember { mutableStateOf(false) }
-        LaunchedEffect(isImeVisible) {
-            if (!isImeVisible) {
-                focusManager.clearFocus()
-            }
-        }
-
         val suggestions = remember(groupInput, staffList) {
             val query = groupInput.trim()
             if (query.isEmpty()) return@remember emptyList<SearchSuggestion>()
@@ -598,12 +589,8 @@ fun ScheduleApp() {
                                                 interactionSource = interactionSource,
                                                 indication = null,
                                                 onClick = {
-                                                    navController.navigate(homeScreen.route) {
-                                                        popUpTo(navController.graph.findStartDestination().id) {
-                                                            saveState = true
-                                                        }
-                                                        launchSingleTop = true
-                                                        restoreState = true
+                                                    scope.launch {
+                                                        pagerState.animateScrollToPage(0)
                                                     }
                                                 }
                                             ),
@@ -685,12 +672,8 @@ fun ScheduleApp() {
                                                 indication = null,
                                                 onClick = {
                                                     if (!isSelected) {
-                                                        navController.navigate(screen.route) {
-                                                            popUpTo(navController.graph.findStartDestination().id) {
-                                                                saveState = true
-                                                            }
-                                                            launchSingleTop = true
-                                                            restoreState = true
+                                                        scope.launch {
+                                                            pagerState.animateScrollToPage(absIndex)
                                                         }
                                                     }
                                                 }
