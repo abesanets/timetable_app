@@ -12,6 +12,7 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
@@ -32,8 +33,10 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -218,8 +221,18 @@ fun ScheduleApp() {
     val isHome = selectedIndex == 0
 
     val focusManager = LocalFocusManager.current
+    val haptic = LocalHapticFeedback.current
     var isSearchFocused by remember { mutableStateOf(false) }
     val isImeVisible = WindowInsets.isImeVisible
+
+    var subgroupBannerText by remember { mutableStateOf<String?>(null) }
+    var subgroupBannerKey by remember { mutableIntStateOf(0) }
+    LaunchedEffect(subgroupBannerKey) {
+        if (subgroupBannerKey > 0) {
+            kotlinx.coroutines.delay(1500)
+            subgroupBannerText = null
+        }
+    }
 
     LaunchedEffect(isImeVisible) {
         if (!isImeVisible) {
@@ -368,6 +381,31 @@ fun ScheduleApp() {
                 ),
                 label = "dock_pill_slide"
             )
+
+            // Temporary subgroup switch feedback pill
+            AnimatedVisibility(
+                visible = isHome && subgroupBannerText != null && !(isSearchFocused && showSuggestions && suggestions.isNotEmpty()),
+                enter = fadeIn(tween(150)) + slideInVertically(tween(150)) { it / 2 },
+                exit = fadeOut(tween(150)) + slideOutVertically(tween(150)) { it / 2 },
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 68.dp)
+            ) {
+                Surface(
+                    shape = CircleShape,
+                    color = MaterialTheme.colorScheme.secondaryContainer,
+                    tonalElevation = 4.dp,
+                    shadowElevation = 6.dp
+                ) {
+                    Text(
+                        text = subgroupBannerText.orEmpty(),
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                    )
+                }
+            }
 
             // Floating Suggestions Card
             AnimatedVisibility(
@@ -535,13 +573,28 @@ fun ScheduleApp() {
                                                 .size(36.dp)
                                                 .clip(CircleShape)
                                                 .background(MaterialTheme.colorScheme.secondaryContainer)
-                                                .clickable(
+                                                .combinedClickable(
                                                     interactionSource = btnInteractionSource,
                                                     indication = null,
-                                                    enabled = !isLoading && groupInput.isNotBlank(),
+                                                    enabled = !isLoading,
                                                     onClick = {
-                                                        focusManager.clearFocus()
-                                                        loadSchedule(null)
+                                                        if (groupInput.isNotBlank()) {
+                                                            focusManager.clearFocus()
+                                                            loadSchedule(null)
+                                                        }
+                                                    },
+                                                    onLongClick = {
+                                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                                        val nextSubgroup = (selectedSubgroup + 1) % 3
+                                                        scope.launch {
+                                                            preferencesManager.setSelectedSubgroup(nextSubgroup)
+                                                        }
+                                                        subgroupBannerText = when (nextSubgroup) {
+                                                            1 -> "1 подгруппа"
+                                                            2 -> "2 подгруппа"
+                                                            else -> "Все подгруппы"
+                                                        }
+                                                        subgroupBannerKey++
                                                     }
                                                 )
                                                 .graphicsLayer {
